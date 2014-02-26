@@ -3,7 +3,8 @@ defmodule Date.Mixfile do
 
   def project do
     [ app: :"timex",
-      version: "0.4.2",
+      version: "0.5.0",
+      elixir: "~> 0.13.0-dev",
       deps: deps ]
   end
 
