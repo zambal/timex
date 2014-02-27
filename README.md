@@ -7,9 +7,23 @@ A draft implementation of date and time functionality based on **Idea #6** from 
 
 [![wercker status](https://app.wercker.com/status/a77f83a04ae1006c9ee44f61a1a147a0/m/ "wercker status")](https://app.wercker.com/project/bykey/a77f83a04ae1006c9ee44f61a1a147a0)
 
-Most everything is complete at this point. There are likely some edge cases around formatting/parsing of dates and times, and around handling of timezones and daylight savings time, but there is already a significant number of tests around these parts, so I feel pretty good about where we're at.
+Complete for 0.5.0:
 
-There is still potential for a lot of API change, pre-1.0, but that should be expected while Elixir is still in a high state of flux, particularly with records potentially going away.
+- Time struct/API
+- Time tests
+
+In Progress:
+
+- Date struct
+- DateTime struct, and API update to use new structs
+
+Up Next:
+
+- Timezone API
+- Update DateFormat to accomodate new APIs
+- Update tests
+
+---
 
 To use timex with your projects, edit your mix.exs file and add it as a dependency:
 
