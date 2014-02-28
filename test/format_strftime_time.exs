@@ -2,8 +2,8 @@ defmodule DateFormatTest.FormatStrftime do
   use ExUnit.Case, async: true
 
   test :format_year do
-    date = Date.from({2013,8,18})
-    old_date = Date.from({3,8,18})
+    date = DateTime.from({2013,8,18})
+    old_date = DateTime.from({3,8,18})
 
     assert { :ok, "2013" } = format(date, "%Y")
     assert { :ok, "13" }   = format(date, "%y")
@@ -24,14 +24,14 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_iso_year do
-    date = Date.from({2007,11,19})
+    date = DateTime.from({2007,11,19})
     assert { :ok, "2007" } = format(date, "%G")
     assert { :ok, "7" }    = format(date, "%-g")
     assert { :ok, "07" }   = format(date, "%g")
     assert { :ok, "07" }   = format(date, "%0g")
     assert { :ok, " 7" }   = format(date, "%_g")
 
-    date = Date.from({2006,1,1})
+    date = DateTime.from({2006,1,1})
     assert { :ok, "2005" } = format(date, "%G")
     assert { :ok, "5" }    = format(date, "%-g")
     assert { :ok, "05" }   = format(date, "%g")
@@ -40,7 +40,7 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_month do
-    date = Date.from({3,3,8})
+    date = DateTime.from({3,3,8})
     assert { :ok, "3" }  = format(date, "%-m")
     assert { :ok, "03" } = format(date, "%m")
     assert { :ok, "03" } = format(date, "%0m")
@@ -48,8 +48,8 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_month_name do
-    date = Date.from({2013,11,18})
-    old_date = Date.from({3,3,8})
+    date = DateTime.from({2013,11,18})
+    old_date = DateTime.from({3,3,8})
 
     assert { :ok, "Nov" }      = format(date, "%b")
     assert { :ok, "Nov" }      = format(date, "%h")
@@ -63,8 +63,8 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_day do
-    date = Date.from({2013,8,18})
-    old_date = Date.from({3,8,8})
+    date = DateTime.from({2013,8,18})
+    old_date = DateTime.from({3,8,8})
 
     assert { :ok, "18" } = format(date, "%d")
     assert { :ok, "18" } = format(date, "%e")
@@ -77,22 +77,22 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_ordinal_day do
-    date = Date.from({3,2,1})
+    date = DateTime.from({3,2,1})
 
     assert { :ok, "32" }  = format(date, "%-j")
     assert { :ok, "032" } = format(date, "%j")
     assert { :ok, "032" } = format(date, "%0j")
     assert { :ok, " 32" } = format(date, "%_j")
 
-    date = Date.from({3,12,31})
+    date = DateTime.from({3,12,31})
     assert { :ok, "365" } = format(date, "%j")
 
-    date = Date.from({3,1,1})
+    date = DateTime.from({3,1,1})
     assert { :ok, "001" } = format(date, "%j")
   end
 
   test :format_weekday do
-    date = Date.from({2007,11,18})
+    date = DateTime.from({2007,11,18})
     assert { :ok, "0" } = format(date, "%w")
     assert { :ok, "7" } = format(date, "%u")
     assert { :ok, "0" } = format(date, "%0w")
@@ -101,34 +101,34 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_weekday_name do
-    assert { :ok, "Mon" } = format(Date.from({2012,12,31}), "%a")
-    assert { :ok, "Tue" } = format(Date.from({2013,1,1}), "%a")
-    assert { :ok, "Wed" } = format(Date.from({2013,1,2}), "%a")
-    assert { :ok, "Thu" } = format(Date.from({2013,1,3}), "%a")
-    assert { :ok, "Fri" } = format(Date.from({2013,1,4}), "%a")
-    assert { :ok, "Sat" } = format(Date.from({2013,1,5}), "%a")
-    assert { :ok, "Sun" } = format(Date.from({2013,1,6}), "%a")
-    assert { :error, "at 0: invalid flag for directive %a" } = format(Date.from({2013,1,6}), "%0a")
-    assert { :error, "at 0: invalid flag for directive %a" } = format(Date.from({2013,1,6}), "%-a")
+    assert { :ok, "Mon" } = format(DateTime.from({2012,12,31}), "%a")
+    assert { :ok, "Tue" } = format(DateTime.from({2013,1,1}), "%a")
+    assert { :ok, "Wed" } = format(DateTime.from({2013,1,2}), "%a")
+    assert { :ok, "Thu" } = format(DateTime.from({2013,1,3}), "%a")
+    assert { :ok, "Fri" } = format(DateTime.from({2013,1,4}), "%a")
+    assert { :ok, "Sat" } = format(DateTime.from({2013,1,5}), "%a")
+    assert { :ok, "Sun" } = format(DateTime.from({2013,1,6}), "%a")
+    assert { :error, "at 0: invalid flag for directive %a" } = format(DateTime.from({2013,1,6}), "%0a")
+    assert { :error, "at 0: invalid flag for directive %a" } = format(DateTime.from({2013,1,6}), "%-a")
 
-    assert { :ok, "Monday" }    = format(Date.from({2012,12,31}), "%A")
-    assert { :ok, "Tuesday" }   = format(Date.from({2013,1,1}), "%A")
-    assert { :ok, "Wednesday" } = format(Date.from({2013,1,2}), "%A")
-    assert { :ok, "Thursday" }  = format(Date.from({2013,1,3}), "%A")
-    assert { :ok, "Friday" }    = format(Date.from({2013,1,4}), "%A")
-    assert { :ok, "Saturday" }  = format(Date.from({2013,1,5}), "%A")
-    assert { :ok, "Sunday" }    = format(Date.from({2013,1,6}), "%A")
-    assert { :error, "at 0: invalid flag for directive %A" } = format(Date.from({2013,1,6}), "%_A")
-    assert { :error, "at 0: invalid flag for directive %A" } = format(Date.from({2013,1,6}), "%0A")
+    assert { :ok, "Monday" }    = format(DateTime.from({2012,12,31}), "%A")
+    assert { :ok, "Tuesday" }   = format(DateTime.from({2013,1,1}), "%A")
+    assert { :ok, "Wednesday" } = format(DateTime.from({2013,1,2}), "%A")
+    assert { :ok, "Thursday" }  = format(DateTime.from({2013,1,3}), "%A")
+    assert { :ok, "Friday" }    = format(DateTime.from({2013,1,4}), "%A")
+    assert { :ok, "Saturday" }  = format(DateTime.from({2013,1,5}), "%A")
+    assert { :ok, "Sunday" }    = format(DateTime.from({2013,1,6}), "%A")
+    assert { :error, "at 0: invalid flag for directive %A" } = format(DateTime.from({2013,1,6}), "%_A")
+    assert { :error, "at 0: invalid flag for directive %A" } = format(DateTime.from({2013,1,6}), "%0A")
   end
 
   test :format_iso_week do
-    date = Date.from({2007,11,19})
+    date = DateTime.from({2007,11,19})
     assert { :ok, "47" } = format(date, "%V")
     assert { :ok, "47" } = format(date, "%0V")
     assert { :ok, "47" } = format(date, "%-V")
 
-    date = Date.from({2007,1,1})
+    date = DateTime.from({2007,1,1})
     assert { :ok, "1" }  = format(date, "%-V")
     assert { :ok, "01" } = format(date, "%V")
     assert { :ok, "01" } = format(date, "%0V")
@@ -136,13 +136,13 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_ordinal_week do
-    date = Date.from({2013,1,1})
+    date = DateTime.from({2013,1,1})
     assert { :ok, "00" } = format(date, "%W")
     assert { :ok, "00" } = format(date, "%U")
     assert { :ok, "0" } = format(date, "%-W")
     assert { :ok, "0" } = format(date, "%-U")
 
-    date = Date.from({2013,1,6})
+    date = DateTime.from({2013,1,6})
     assert { :ok, "00" } = format(date, "%W")
     assert { :ok, "01" } = format(date, "%U")
     assert { :ok, "0" } = format(date, "%-W")
@@ -150,7 +150,7 @@ defmodule DateFormatTest.FormatStrftime do
     assert { :ok, " 0" } = format(date, "%_W")
     assert { :ok, " 1" } = format(date, "%_U")
 
-    date = Date.from({2013,1,7})
+    date = DateTime.from({2013,1,7})
     assert { :ok, "01" } = format(date, "%W")
     assert { :ok, "01" } = format(date, "%U")
     assert { :ok, "1" } = format(date, "%-W")
@@ -158,8 +158,8 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_dates do
-    date = Date.from({2013,8,18})
-    old_date = Date.from({3,8,8})
+    date = DateTime.from({2013,8,18})
+    old_date = DateTime.from({3,8,8})
 
     assert { :ok, "2013-8-18" } = format(date, "%Y-%-m-%d")
     assert { :ok, "3/08/08" } = format(old_date, "%-Y/%m/%d")
@@ -173,8 +173,8 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_time do
-    date = Date.from({{2013,8,18}, {16,28,27}})
-    date_midnight = Date.from({{2013,8,18}, {0,3,4}})
+    date = DateTime.from({{2013,8,18}, {16,28,27}})
+    date_midnight = DateTime.from({{2013,8,18}, {0,3,4}})
 
     assert { :ok, "0" }  = format(date_midnight, "%-H")
     assert { :ok, "00" } = format(date_midnight, "%H")
@@ -195,7 +195,7 @@ defmodule DateFormatTest.FormatStrftime do
     assert { :ok, "04" } = format(date, "%I")
     assert { :ok, " 4" } = format(date, "%l")
 
-    date = Date.from({{2013,8,18}, {12,3,4}})
+    date = DateTime.from({{2013,8,18}, {12,3,4}})
     assert { :ok, "12: 3: 4" } = format(date, "%H:%_M:%_S")
     assert { :ok, "12:03:04" } = format(date, "%k:%M:%S")
     assert { :ok, "12:03:04 PM" } = format(date, "%I:%0M:%0S %p")
@@ -214,10 +214,10 @@ defmodule DateFormatTest.FormatStrftime do
     assert { :ok, "1376827384" }  = format(date, "%-s")
     assert { :ok, "1376827384" }  = format(date, "%_s")
 
-    date = Date.from({{2001,9,9},{1,46,40}})
+    date = DateTime.from({{2001,9,9},{1,46,40}})
     assert { :ok, "1000000000" } = format(date, "%s")
 
-    date = Date.epoch()
+    date = DateTime.epoch()
     assert { :ok, "0" }           = format(date, "%-s")
     assert { :ok, "0000000000" }  = format(date, "%s")
     assert { :ok, "0000000000" }  = format(date, "%0s")
@@ -225,15 +225,15 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :format_zones do
-    eet = Date.timezone(2.0, "EET")
-    date = Date.from({2007,11,19}, eet)
+    eet = DateTime.timezone("EET")
+    date = DateTime.from({2007,11,19}, eet)
     assert { :ok, "EET" } = format(date, "%Z")
     assert { :ok, "+0200" } = format(date, "%z")
     assert { :ok, "+02:00" } = format(date, "%:z")
     assert { :ok, "+02:00:00" } = format(date, "%::z")
 
-    pst = Date.timezone(-8.0, "PST")
-    date = Date.from({2007,11,19}, pst)
+    pst = DateTime.timezone("PST")
+    date = DateTime.from({2007,11,19}, pst)
     assert { :ok, "PST" } = format(date, "%Z")
     assert { :ok, "-0800" } = format(date, "%z")
     assert { :ok, "-08:00" } = format(date, "%:z")
@@ -246,24 +246,24 @@ defmodule DateFormatTest.FormatStrftime do
   end
 
   test :combined_directives do
-    date = Date.from({{2013,8,18}, {16,28,27}})
+    date = DateTime.from({{2013,8,18}, {16,28,27}})
     assert { :ok, "08/18/13" }    = format(date, "%D")
     assert { :ok, "2013-08-18" }  = format(date, "%F")
     assert { :ok, "16:28" }       = format(date, "%R")
     assert { :ok, "04:28:27 PM" } = format(date, "%r")
     assert { :ok, "16:28:27" }    = format(date, "%T")
 
-    date = Date.from({{2013,8,1}, {16,28,27}})
+    date = DateTime.from({{2013,8,1}, {16,28,27}})
     assert { :ok, " 1-Aug-2013" } = format(date, "%v")
   end
 
   test :unicode do
-    date = Date.from({{2007,11,9}, {8,37,48}})
+    date = DateTime.from({{2007,11,9}, {8,37,48}})
     assert { :ok, "Fri å∫ç∂ {%08…37…48%} ¿UTC?" } = format(date, "%a å∫ç∂ {%%%H…%M…%S%%} ¿%Z?")
   end
 
   test :tokens do
-    date = Date.now()
+    date = DateTime.now()
     assert {:ok, "" } = format(date, "")
     assert {:ok, "abc" } = format(date, "abc")
     assert {:ok, "Use % as oft{{en as you like%" } = format(date, "Use %% as oft{{en as you like%%")
@@ -276,6 +276,8 @@ defmodule DateFormatTest.FormatStrftime do
 end
 
 defmodule DateFormatTest.ValidateStrftime do
+  use ExUnit.Case, async: true
+  
   test :validate do
     assert :ok = validate ""
     assert :ok = validate "abc"

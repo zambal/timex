@@ -70,7 +70,7 @@ defmodule Time do
   #@spec now() :: Time.t
   #@spec now(unit_of_time) :: integer
   def now(),     do: :os.timestamp |> new
-  def now(type), do: convert(now, type) |> new
+  def now(type), do: :os.timestamp |> convert(type)
 
   @doc """
   Return a Time struct representing the time interval since the first day of year 0 to Epoch.
@@ -361,13 +361,13 @@ defmodule Time do
   # Supported units: microseconds (:usec), milliseconds (:msec), seconds (:sec),
   # minutes (:min), hours (:hour), days (:day), or weeks (:week).
   ####
-  defp convert(timestamp, :usecs), do: to_secs(timestamp) * @microsecs_per_sec
-  defp convert(timestamp, :msecs), do: to_secs(timestamp) * @millisecs_per_sec
+  defp convert(timestamp, :usecs), do: to_usecs(timestamp)
+  defp convert(timestamp, :msecs), do: to_msecs(timestamp)
   defp convert(timestamp, :secs),  do: to_secs(timestamp)
-  defp convert(timestamp, :mins),  do: to_secs(timestamp) / @seconds_per_min
-  defp convert(timestamp, :hours), do: to_secs(timestamp) / @seconds_per_hour
-  defp convert(timestamp, :days),  do: to_secs(timestamp) / @seconds_per_day
-  defp convert(timestamp, :weeks), do: to_secs(timestamp) / @seconds_per_week
+  defp convert(timestamp, :mins),  do: to_mins(timestamp)
+  defp convert(timestamp, :hours), do: to_hours(timestamp)
+  defp convert(timestamp, :days),  do: to_days(timestamp)
+  defp convert(timestamp, :weeks), do: to_weeks(timestamp)
 
   defp divmod(a, b) do
     { div(a |> trunc, b |> trunc), rem(a |> trunc, b |> trunc) }

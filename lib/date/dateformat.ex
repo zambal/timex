@@ -1,4 +1,5 @@
 defmodule DateFormat do
+  require DateTime
   @moduledoc """
   Date formatting and parsing.
 
@@ -15,18 +16,18 @@ defmodule DateFormat do
   @doc """
   Converts date values to strings according to the given template (aka format string).
   """
-  @spec format(DateTime.t, String.t) :: {:ok, String.t} | {:error, String.t}
+  #@spec format(DateTime.t, String.t) :: {:ok, String.t} | {:error, String.t}
 
-  def format(DateTime[] = date, fmt) when is_binary(fmt) do
+  def format(%DateTime{} = date, fmt) when is_binary(fmt) do
     format(date, fmt, :default)
   end
 
   @doc """
   Same as `format/2`, but takes a custom formatter.
   """
-  @spec format(DateTime.t, String.t, formatter) :: {:ok, String.t} | {:error, String.t}
+  #@spec format(DateTime.t, String.t, formatter) :: {:ok, String.t} | {:error, String.t}
 
-  def format(DateTime[] = date, fmt, formatter) when is_binary(fmt) do
+  def format(%DateTime{} = date, fmt, formatter) when is_binary(fmt) do
     case tokenize(fmt, formatter) do
       { :ok, parts } ->
         # The following reduce() calls produces a list of date components
@@ -56,9 +57,9 @@ defmodule DateFormat do
   Raising version of `format/2`. Returns a string with formatted date or
   raises an `ArgumentError`.
   """
-  @spec format!(DateTime.t, String.t) :: String.t | no_return
+  #@spec format!(DateTime.t, String.t) :: String.t | no_return
 
-  def format!(DateTime[] = date, fmt) do
+  def format!(%DateTime{} = date, fmt) do
     format!(date, fmt, :default)
   end
 
@@ -66,9 +67,9 @@ defmodule DateFormat do
   Raising version of `format/3`. Returns a string with formatted date or
   raises an `ArgumentError`.
   """
-  @spec format!(DateTime.t, String.t, formatter) :: String.t | no_return
+  #@spec format!(DateTime.t, String.t, formatter) :: String.t | no_return
 
-  def format!(DateTime[] = date, fmt, formatter) do
+  def format!(%DateTime{} = date, fmt, formatter) do
     case format(date, fmt, formatter) do
       { :ok, result }    -> result
       { :error, reason } -> raise ArgumentError, message: "Bad format: #{reason}"
@@ -78,7 +79,7 @@ defmodule DateFormat do
   @doc """
   Parses the date encoded in `string` according to the template.
   """
-  @spec parse(String.t, String.t) :: {:ok, Date.dtz} | {:error, String.t}
+  #@spec parse(String.t, String.t) :: {:ok, DateTime.dtz} | {:error, String.t}
 
   def parse(string, fmt) do
     parse(string, fmt, :default)
@@ -88,7 +89,7 @@ defmodule DateFormat do
   Parses the date encoded in `string` according to the template by using the
   provided formatter.
   """
-  @spec parse(String.t, String.t, formatter) :: {:ok, Date.dtz, String.t} | {:error, String.t}
+  #@spec parse(String.t, String.t, formatter) :: {:ok, DateTime.dtz, String.t} | {:error, String.t}
 
   def parse(string, fmt, formatter) do
     case tokenize(fmt, formatter) do
@@ -136,63 +137,63 @@ defmodule DateFormat do
 
   # Takes a directive (atom) and extracts the corresponding component from the
   # date
-  defp format_directive(DateTime[year: year, month: month, day: day, hour: hour, minute: min, second: sec] = date, dir) do
-    start_of_year = Date.from({year,1,1})
-    {iso_year, iso_week} = Date.iso_week(date)
+  defp format_directive(%DateTime{:date => %Date{:year => y, :month => m, :day => d}, :time => %Time{:hours => h, :minutes => min, :seconds => sec}} = date, dir) do
+    start_of_year = DateTime.from({y,1,1})
+    {iso_year, iso_week} = DateTime.iso_week(date)
 
     daynum = fn date ->
-      1 + Date.diff(start_of_year, date, :days)
+      1 + DateTime.diff(start_of_year, date, :days)
     end
 
     get_week_no = fn jan1weekday ->
       first_monday = rem(7 - jan1weekday, 7) + 1
-      div(Date.day(date) - first_monday + 7, 7)
+      div(DateTime.day(date) - first_monday + 7, 7)
     end
 
     case dir do
-      :year      -> year
-      :year2     -> rem(year, 100)
-      :century   -> div(year, 100)
+      :year      -> y
+      :year2     -> rem(y, 100)
+      :century   -> div(y, 100)
       :iso_year  -> iso_year
       :iso_year2 -> rem(iso_year, 100)
 
-      :month     -> month
-      :mshort    -> month_name_short(month)
-      :mfull     -> month_name_full(month)
+      :month     -> m
+      :mshort    -> DateTime.month_shortname(m)
+      :mfull     -> DateTime.month_name(m)
 
-      :day       -> day
+      :day       -> d
       :oday      -> daynum.(date)
-      :wday_mon  -> Date.weekday(date)
-      :wday_sun  -> rem(Date.weekday(date), 7)
-      :wdshort   -> weekday_name_short(Date.weekday(date))
-      :wdfull    -> weekday_name_full(Date.weekday(date))
+      :wday_mon  -> DateTime.weekday(date)
+      :wday_sun  -> rem(DateTime.weekday(date), 7)
+      :wdshort   -> date |> DateTime.weekday |> DateTime.day_shortname
+      :wdfull    -> date |> DateTime.weekday |> DateTime.day_name
 
       :iso_week  -> iso_week
-      :week_mon  -> get_week_no.(Date.weekday(start_of_year) - 1)
-      :week_sun  -> get_week_no.(rem Date.weekday(start_of_year), 7)
+      :week_mon  -> get_week_no.(DateTime.weekday(start_of_year) - 1)
+      :week_sun  -> get_week_no.(rem DateTime.weekday(start_of_year), 7)
 
-      :hour24    -> hour
-      :hour12 when hour in [0, 12] -> 12
-      :hour12    -> rem(hour, 12)
+      :hour24    -> h
+      :hour12 when h in [0, 12] -> 12
+      :hour12    -> rem(h, 12)
       :min       -> min
       :sec       -> sec
-      :sec_epoch -> Date.to_secs(date)
-      :am        -> if hour < 12 do "am" else "pm" end
-      :AM        -> if hour < 12 do "AM" else "PM" end
+      :sec_epoch -> DateTime.to_secs(date)
+      :am        -> if h < 12 do "am" else "pm" end
+      :AM        -> if h < 12 do "AM" else "PM" end
 
       :zname ->
-        {_,_,{_,tz_name}} = Date.Convert.to_gregorian(date)
+        {_,_,{_,tz_name}} = DateTime.Convert.to_gregorian(date)
         tz_name
       :zoffs ->
-        {_,_,{tz_offset,_}} = Date.Convert.to_gregorian(date)
-        { sign, hour, min, _ } = split_tz(tz_offset)
-        :io_lib.format("~s~2..0B~2..0B", [sign, hour, min])
+        {_,_,{tz_offset,_}} = DateTime.Convert.to_gregorian(date)
+        { sign, h, min, _ } = split_tz(tz_offset)
+        :io_lib.format("~s~2..0B~2..0B", [sign, h, min])
       :zoffs_colon ->
-        {_,_,{tz_offset,_}} = Date.Convert.to_gregorian(date)
-        { sign, hour, min, _ } = split_tz(tz_offset)
-        :io_lib.format("~s~2..0B:~2..0B", [sign, hour, min])
+        {_,_,{tz_offset,_}} = DateTime.Convert.to_gregorian(date)
+        { sign, h, min, _ } = split_tz(tz_offset)
+        :io_lib.format("~s~2..0B:~2..0B", [sign, h, min])
       :zoffs_sec ->
-        {_,_,{tz_offset,_}} = Date.Convert.to_gregorian(date)
+        {_,_,{tz_offset,_}} = DateTime.Convert.to_gregorian(date)
         :io_lib.format("~s~2..0B:~2..0B:~2..0B", tuple_to_list(split_tz(tz_offset)))
     end
   end
@@ -200,11 +201,11 @@ defmodule DateFormat do
   ## ISO 8601 ##
 
   defp format_predefined(date, :"ISOz") do
-    format_iso(Date.universal(date), "Z")
+    format_iso(DateTime.universal(date), "Z")
   end
 
   defp format_predefined(date, :"ISO") do
-    { _, _, {offset,_} } = Date.Convert.to_gregorian(date)
+    { _, _, {offset,_} } = DateTime.Convert.to_gregorian(date)
 
     { sign, hrs, min, _ } = split_tz(offset)
     tz = :io_lib.format("~s~2..0B~2..0B", [sign, hrs, min])
@@ -213,44 +214,43 @@ defmodule DateFormat do
   end
 
   defp format_predefined(date, :"ISOdate") do
-    DateTime[year: year, month: month, day: day] = Date.universal(date)
+    %DateTime{:date => %Date{:year => year, :month => month, :day => day}} = DateTime.universal(date)
     :io_lib.format("~4..0B-~2..0B-~2..0B", [year, month, day])
     |> wrap
   end
 
   defp format_predefined(date, :"ISOtime") do
-    DateTime[hour: hour, minute: min, second: sec] = Date.universal(date)
+    %DateTime{:time => %Time{:hours => hour, :minutes => min, :seconds => sec}} = DateTime.universal(date)
     :io_lib.format("~2..0B:~2..0B:~2..0B", [hour, min, sec])
     |> wrap
   end
 
   defp format_predefined(date, :"ISOweek") do
-    {year, week} = Date.iso_week(date)
+    {year, week} = DateTime.iso_week(date)
     :io_lib.format("~4..0B-W~2..0B", [year, week])
     |> wrap
   end
 
   defp format_predefined(date, :"ISOweek-day") do
-    {year, week, day} = Date.iso_triplet(date)
+    {year, week, day} = DateTime.iso_triplet(date)
     :io_lib.format("~4..0B-W~2..0B-~B", [year, week, day])
     |> wrap
   end
 
-  defp format_predefined(date, :"ISOord") do
-    DateTime[year: year] = date
-    day_no = date |> Date.universal |> Date.day
+  defp format_predefined(%DateTime{:date => %Date{:year => year}} = date, :"ISOord") do
+    day_no = date |> DateTime.universal |> DateTime.day
     :io_lib.format("~4..0B-~3..0B", [year, day_no]) |> wrap
   end
 
   ## RFC 1123 ##
 
   defp format_predefined(date, :"RFC1123") do
-    { _, _, {_,tz_name} } = Date.Convert.to_gregorian(date)
+    { _, _, {_,tz_name} } = DateTime.Convert.to_gregorian(date)
     format_rfc(date, {:name, tz_name})
   end
 
   defp format_predefined(date, :"RFC1123z") do
-    { _, _, {tz_offset,_} } = Date.Convert.to_gregorian(date)
+    { _, _, {tz_offset,_} } = DateTime.Convert.to_gregorian(date)
     format_rfc(date, {:offset, tz_offset})
   end
 
@@ -259,7 +259,7 @@ defmodule DateFormat do
   # This is similar to ISO, but using xx:xx format for time zone offset (as
   # opposed to xxxx)
   defp format_predefined(date, :"RFC3339") do
-    { _, _, {offset,_} } = Date.Convert.to_gregorian(date)
+    { _, _, {offset,_} } = DateTime.Convert.to_gregorian(date)
     tz = if offset == 0 do
       "Z"
     else
@@ -270,29 +270,29 @@ defmodule DateFormat do
   end
 
   #ANSIC       = "Mon Jan _2 15:04:05 2006"
-  defp format_predefined(DateTime[year: year, month: month, day: day, hour: hour, minute: min, second: sec] = date, :"ANSIC") do
-    day_name = weekday_name_short(Date.weekday(date))
-    month_name = month_name_short(month)
+  defp format_predefined(%DateTime{:date => %Date{:year => y, :month => m, :day => d}, :time => %Time{:hours => h, :minutes => min, :seconds => sec}} = date, :"ANSIC") do
+    day_name   = date |> DateTime.weekday |> DateTime.day_shortname
+    month_name = DateTime.month_shortname(m)
 
     fstr = "~s ~s ~2.. B ~2..0B:~2..0B:~2..0B ~4..0B"
-    :io_lib.format(fstr, [day_name, month_name, day, hour, min, sec, year])
+    :io_lib.format(fstr, [day_name, month_name, d, h, min, sec, y])
     |> wrap
   end
 
   #UnixDate    = "Mon Jan _2 15:04:05 MST 2006"
-  defp format_predefined(DateTime[year: year, month: month, day: day, hour: hour, minute: min, second: sec] = date, :"UNIX") do
-    day_name = weekday_name_short(Date.weekday(date))
-    month_name = month_name_short(month)
+  defp format_predefined(%DateTime{:date => %Date{:year => y, :month => m, :day => d}, :time => %Time{:hours => h, :minutes => min, :seconds => sec}} = date, :"UNIX") do
+    day_name   = date |> DateTime.weekday |> DateTime.day_shortname
+    month_name = DateTime.month_shortname(m)
 
-    {_,_,{_,tz_name}} = Date.Convert.to_gregorian(date)
+    {_,_,{_,tz_name}} = DateTime.Convert.to_gregorian(date)
 
     fstr = "~s ~s ~2.. B ~2..0B:~2..0B:~2..0B #{tz_name} ~4..0B"
-    :io_lib.format(fstr, [day_name, month_name, day, hour, min, sec, year])
+    :io_lib.format(fstr, [day_name, month_name, d, h, min, sec, y])
     |> wrap
   end
 
   #Kitchen     = "3:04PM"
-  defp format_predefined(DateTime[hour: hour, minute: min], :"kitchen") do
+  defp format_predefined(%DateTime{:time => %Time{:hours => hour, :minutes => min}}, :"kitchen") do
     am = if hour < 12 do "AM" else "PM" end
     hour = if hour in [0, 12] do 12 else rem(hour, 12) end
     :io_lib.format("~B:~2..0B~s", [hour, min, am])
@@ -301,16 +301,19 @@ defmodule DateFormat do
 
   ### Helper functions used by format_predefined ###
 
-  defp format_iso(DateTime[year: y, month: m, day: d, hour: h, minute: min, second: sec], tz) do
+  defp format_iso(%DateTime{:date => %Date{:year => y, :month => m, :day => d}, :time => %Time{:hours => h, :minutes => min, :seconds => sec}}, tz) do
     :io_lib.format(
         "~4..0B-~2..0B-~2..0BT~2..0B:~2..0B:~2..0B~s",
         [y, m, d, h, min, sec, tz]
     ) |> wrap
   end
 
-  defp format_rfc(DateTime[year: year, month: month, day: day, hour: hour, minute: min, second: sec] = date, tz) do
-    day_name = weekday_name_short(Date.weekday(date))
-    month_name = month_name_short(month)
+  defp format_rfc(%DateTime{:date => date, :time => time} = datetime, tz) do
+    %Date{:year => year, :month => month, :day => day} = date
+    %Time{:hours => hour, :minutes => min, :seconds => sec} = time
+
+    day_name   = DateTime.weekday(datetime) |> DateTime.day_shortname
+    month_name = DateTime.month_shortname(month)
     fstr = case tz do
       { :name, tz_name } ->
         if tz_name == "UTC" do
@@ -324,36 +327,6 @@ defmodule DateFormat do
     end
     :io_lib.format(fstr, [day_name, day, month_name, year, hour, min, sec])
     |> wrap
-  end
-
-  defp weekday_name_short(day) when day in 1..7 do
-    case day do
-      1 -> "Mon"; 2 -> "Tue"; 3 -> "Wed"; 4 -> "Thu";
-      5 -> "Fri"; 6 -> "Sat"; 7 -> "Sun"
-    end
-  end
-
-  defp weekday_name_full(day) when day in 1..7 do
-    case day do
-      1 -> "Monday"; 2 -> "Tuesday"; 3 -> "Wednesday"; 4 -> "Thursday";
-      5 -> "Friday"; 6 -> "Saturday"; 7 -> "Sunday"
-    end
-  end
-
-  defp month_name_short(month) when month in 1..12 do
-    case month do
-      1 -> "Jan";  2 -> "Feb";  3 -> "Mar";  4 -> "Apr";
-      5 -> "May";  6 -> "Jun";  7 -> "Jul";  8 -> "Aug";
-      9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"
-    end
-  end
-
-  defp month_name_full(month) when month in 1..12 do
-    case month do
-      1 -> "January";    2 -> "February";  3 -> "March";     4 -> "April";
-      5 -> "May";        6 -> "June";      7 -> "July";      8 -> "August";
-      9 -> "September"; 10 -> "October";  11 -> "November"; 12 -> "December"
-    end
   end
 
   defp split_tz(offset) do
@@ -429,7 +402,7 @@ defmodule DateFormat do
   # Converts a formatting directive into intermediate date component (to be
   # used when building the date later)
   defp read_token(string, dir, native_fmt) do
-    DateTime[year: year] = Date.local
+    %DateTime{:date => %Date{:year => year}} = DateTime.universal
     century = div(year, 100)
 
     case :io_lib.fread(native_fmt, string) do
@@ -437,17 +410,15 @@ defmodule DateFormat do
         comp = case dir do
           # FIXME: year number has to be in the range 0..9999
           :year      -> [century: div(num,100), year2: rem(num,100)]
-          :year2     ->
-            # assuming current century
-            [century: century, year2: num]
+          # assuming current century
+          :year2     -> [century: century, year2: num]
           :century   -> [century: num]
           :iso_year  -> [iso_year: num]
-          :iso_year2 ->
-            # assuming current century
-            [iso_year: century*100 + num]
+          # assuming current century
+          :iso_year2 -> [iso_year: century*100 + num]
           :month     -> [month: num]
-          :mshort    -> [month: Date.month_to_num(num)]
-          :mfull     -> [month: Date.month_to_num(num)]
+          :mshort    -> [month: DateTime.month_to_num(num)]
+          :mfull     -> [month: DateTime.month_to_num(num)]
           :day       -> [day: num]
           :oday      -> [oday: num]
           :wday_mon  -> [wday: num]
@@ -531,8 +502,8 @@ defmodule DateFormat do
         tmpdate(acc, sec: num)
     end
 
-    Date.from({{tmpdate(date, :year), tmpdate(date, :month), tmpdate(date, :day)},
-               {tmpdate(date, :hour), tmpdate(date, :min), tmpdate(date, :sec)}})
+    DateTime.from({{tmpdate(date, :year), tmpdate(date, :month), tmpdate(date, :day)},
+                   {tmpdate(date, :hour), tmpdate(date, :min), tmpdate(date, :sec)}})
   end
 
   defp is_am(x) when x in ['am', 'AM'], do: true

@@ -2,8 +2,8 @@ defmodule DateFormatTest.FormatDefault do
   use ExUnit.Case, async: true
 
   test :format_year do
-    date = Date.from({2013,8,18})
-    old_date = Date.from({3,8,18})
+    date = DateTime.from({2013,8,18})
+    old_date = DateTime.from({3,8,18})
 
     assert { :ok, "2013" } = format(date, "{YYYY}")
     assert { :ok, "13" }   = format(date, "{YY}")
@@ -21,13 +21,13 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :format_iso_year do
-    date = Date.from({2007,11,19})
+    date = DateTime.from({2007,11,19})
     assert { :ok, "2007" } = format(date, "{WYYYY}")
     assert { :ok, "7" }    = format(date, "{WYY}")
     assert { :ok, "07" }   = format(date, "{0WYY}")
     assert { :ok, " 7" }   = format(date, "{_WYY}")
 
-    date = Date.from({2006,1,1})
+    date = DateTime.from({2006,1,1})
     assert { :ok, "2005" } = format(date, "{WYYYY}")
     assert { :ok, "5" }    = format(date, "{WYY}")
     assert { :ok, "05" }   = format(date, "{0WYY}")
@@ -35,15 +35,15 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :format_month do
-    date = Date.from({3,3,8})
+    date = DateTime.from({3,3,8})
     assert { :ok, "3" }  = format(date, "{M}")
     assert { :ok, "03" } = format(date, "{0M}")
     assert { :ok, " 3" } = format(date, "{_M}")
   end
 
   test :format_month_name do
-    date = Date.from({2013,11,18})
-    old_date = Date.from({3,3,8})
+    date = DateTime.from({2013,11,18})
+    old_date = DateTime.from({3,3,8})
 
     assert { :ok, "Nov" }      = format(date, "{Mshort}")
     assert { :ok, "November" } = format(date, "{Mfull}")
@@ -55,8 +55,8 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :format_day do
-    date = Date.from({2013,8,18})
-    old_date = Date.from({3,8,8})
+    date = DateTime.from({2013,8,18})
+    old_date = DateTime.from({3,8,8})
 
     assert { :ok, "18" } = format(date, "{D}")
     assert { :ok, "18" } = format(date, "{0D}")
@@ -67,21 +67,21 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :format_ordinal_day do
-    date = Date.from({3,2,1})
+    date = DateTime.from({3,2,1})
 
     assert { :ok, "32" }  = format(date, "{Dord}")
     assert { :ok, "032" } = format(date, "{0Dord}")
     assert { :ok, " 32" } = format(date, "{_Dord}")
 
-    date = Date.from({3,12,31})
+    date = DateTime.from({3,12,31})
     assert { :ok, "365" } = format(date, "{Dord}")
 
-    date = Date.from({3,1,1})
+    date = DateTime.from({3,1,1})
     assert { :ok, "001" } = format(date, "{0Dord}")
   end
 
   test :format_weekday do
-    date = Date.from({2007,11,18})
+    date = DateTime.from({2007,11,18})
     assert { :ok, "0" } = format(date, "{WDsun}")
     assert { :ok, "7" } = format(date, "{WDmon}")
     assert { :error, "at 0: bad directive" } = format(date, "{0WDsun}")
@@ -91,68 +91,68 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :format_weekday_name do
-    assert { :ok, "Mon" } = format(Date.from({2012,12,31}), "{WDshort}")
-    assert { :ok, "Tue" } = format(Date.from({2013,1,1}), "{WDshort}")
-    assert { :ok, "Wed" } = format(Date.from({2013,1,2}), "{WDshort}")
-    assert { :ok, "Thu" } = format(Date.from({2013,1,3}), "{WDshort}")
-    assert { :ok, "Fri" } = format(Date.from({2013,1,4}), "{WDshort}")
-    assert { :ok, "Sat" } = format(Date.from({2013,1,5}), "{WDshort}")
-    assert { :ok, "Sun" } = format(Date.from({2013,1,6}), "{WDshort}")
-    assert { :error, "at 0: bad directive" } = format(Date.from({2013,1,6}), "{0WDshort}")
-    assert { :error, "at 0: bad directive" } = format(Date.from({2013,1,6}), "{_WDshort}")
+    assert { :ok, "Mon" } = format(DateTime.from({2012,12,31}), "{WDshort}")
+    assert { :ok, "Tue" } = format(DateTime.from({2013,1,1}), "{WDshort}")
+    assert { :ok, "Wed" } = format(DateTime.from({2013,1,2}), "{WDshort}")
+    assert { :ok, "Thu" } = format(DateTime.from({2013,1,3}), "{WDshort}")
+    assert { :ok, "Fri" } = format(DateTime.from({2013,1,4}), "{WDshort}")
+    assert { :ok, "Sat" } = format(DateTime.from({2013,1,5}), "{WDshort}")
+    assert { :ok, "Sun" } = format(DateTime.from({2013,1,6}), "{WDshort}")
+    assert { :error, "at 0: bad directive" } = format(DateTime.from({2013,1,6}), "{0WDshort}")
+    assert { :error, "at 0: bad directive" } = format(DateTime.from({2013,1,6}), "{_WDshort}")
 
-    assert { :ok, "Monday" }    = format(Date.from({2012,12,31}), "{WDfull}")
-    assert { :ok, "Tuesday" }   = format(Date.from({2013,1,1}), "{WDfull}")
-    assert { :ok, "Wednesday" } = format(Date.from({2013,1,2}), "{WDfull}")
-    assert { :ok, "Thursday" }  = format(Date.from({2013,1,3}), "{WDfull}")
-    assert { :ok, "Friday" }    = format(Date.from({2013,1,4}), "{WDfull}")
-    assert { :ok, "Saturday" }  = format(Date.from({2013,1,5}), "{WDfull}")
-    assert { :ok, "Sunday" }    = format(Date.from({2013,1,6}), "{WDfull}")
-    assert { :error, "at 0: bad directive" } = format(Date.from({2013,1,6}), "{0WDfull}")
-    assert { :error, "at 0: bad directive" } = format(Date.from({2013,1,6}), "{_WDfull}")
+    assert { :ok, "Monday" }    = format(DateTime.from({2012,12,31}), "{WDfull}")
+    assert { :ok, "Tuesday" }   = format(DateTime.from({2013,1,1}), "{WDfull}")
+    assert { :ok, "Wednesday" } = format(DateTime.from({2013,1,2}), "{WDfull}")
+    assert { :ok, "Thursday" }  = format(DateTime.from({2013,1,3}), "{WDfull}")
+    assert { :ok, "Friday" }    = format(DateTime.from({2013,1,4}), "{WDfull}")
+    assert { :ok, "Saturday" }  = format(DateTime.from({2013,1,5}), "{WDfull}")
+    assert { :ok, "Sunday" }    = format(DateTime.from({2013,1,6}), "{WDfull}")
+    assert { :error, "at 0: bad directive" } = format(DateTime.from({2013,1,6}), "{0WDfull}")
+    assert { :error, "at 0: bad directive" } = format(DateTime.from({2013,1,6}), "{_WDfull}")
   end
 
   test :format_iso_week do
-    date = Date.from({2007,11,19})
+    date = DateTime.from({2007,11,19})
     assert { :ok, "47" } = format(date, "{Wiso}")
     assert { :ok, "47" } = format(date, "{0Wiso}")
     assert { :ok, "47" } = format(date, "{_Wiso}")
 
-    date = Date.from({2007,1,1})
+    date = DateTime.from({2007,1,1})
     assert { :ok, "1" }  = format(date, "{Wiso}")
     assert { :ok, "01" } = format(date, "{0Wiso}")
     assert { :ok, " 1" } = format(date, "{_Wiso}")
   end
 
   test :format_ordinal_week do
-    date = Date.from({2013,1,1})
+    date = DateTime.from({2013,1,1})
     assert { :ok, "0" } = format(date, "{Wmon}")
     assert { :ok, "0" } = format(date, "{Wsun}")
 
-    date = Date.from({2013,1,6})
+    date = DateTime.from({2013,1,6})
     assert { :ok, "00" } = format(date, "{0Wmon}")
     assert { :ok, "01" } = format(date, "{0Wsun}")
 
-    date = Date.from({2013,1,7})
+    date = DateTime.from({2013,1,7})
     assert { :ok, " 1" } = format(date, "{_Wmon}")
     assert { :ok, " 1" } = format(date, "{_Wsun}")
 
-    date = Date.from({2012,1,1})
+    date = DateTime.from({2012,1,1})
     assert { :ok, "0" } = format(date, "{Wmon}")
     assert { :ok, "1" } = format(date, "{Wsun}")
 
-    date = Date.from({2012,1,2})
+    date = DateTime.from({2012,1,2})
     assert { :ok, "1" } = format(date, "{Wmon}")
     assert { :ok, "1" } = format(date, "{Wsun}")
 
-    date = Date.from({2012,12,31})
+    date = DateTime.from({2012,12,31})
     assert { :ok, "53" } = format(date, "{Wmon}")
     assert { :ok, "53" } = format(date, "{Wsun}")
   end
 
   test :format_dates do
-    date = Date.from({2013,8,18})
-    old_date = Date.from({3,8,8})
+    date = DateTime.from({2013,8,18})
+    old_date = DateTime.from({3,8,8})
 
     assert { :ok, "2013-8-18" } = format(date, "{YYYY}-{M}-{D}")
     assert { :ok, "3/08/08" } = format(old_date, "{YYYY}/{0M}/{0D}")
@@ -165,8 +165,8 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :format_time do
-    date = Date.from({{2013,8,18}, {16,28,27}})
-    date_midnight = Date.from({{2013,8,18}, {0,3,4}})
+    date = DateTime.from({{2013,8,18}, {16,28,27}})
+    date_midnight = DateTime.from({{2013,8,18}, {0,3,4}})
 
     assert { :ok, "0" }  = format(date_midnight, "{h24}")
     assert { :ok, "00" } = format(date_midnight, "{0h24}")
@@ -176,7 +176,7 @@ defmodule DateFormatTest.FormatDefault do
     assert { :ok, "04" } = format(date, "{0h12}")
     assert { :ok, " 4" } = format(date, "{_h12}")
 
-    date = Date.from({{2013,8,18}, {12,3,4}})
+    date = DateTime.from({{2013,8,18}, {12,3,4}})
     assert { :ok, "12: 3: 4" }    = format(date, "{h24}:{_m}:{_s}")
     assert { :ok, "12:03:04" }    = format(date, "{h12}:{0m}:{0s}")
     assert { :ok, "12:03:04 PM" } = format(date, "{h12}:{0m}:{0s} {AM}")
@@ -191,25 +191,25 @@ defmodule DateFormatTest.FormatDefault do
     assert { :ok, "1376827384" }  = format(date, "{0s-epoch}")
     assert { :ok, "1376827384" }  = format(date, "{_s-epoch}")
 
-    date = Date.from({{2001,9,9},{1,46,40}})
+    date = DateTime.from({{2001,9,9},{1,46,40}})
     assert { :ok, "1000000000" } = format(date, "{s-epoch}")
 
-    date = Date.epoch()
+    date = DateTime.epoch()
     assert { :ok, "0" }           = format(date, "{s-epoch}")
     assert { :ok, "0000000000" }  = format(date, "{0s-epoch}")
     assert { :ok, "         0" }  = format(date, "{_s-epoch}")
   end
 
   test :format_zones do
-    eet = Date.timezone("EET")
-    date = Date.from({2007,11,19}, eet)
+    eet = DateTime.timezone("EET")
+    date = DateTime.from({2007,11,19}, eet)
     assert { :ok, "EET" } = format(date, "{Zname}")
     assert { :ok, "+0200" } = format(date, "{Z}")
     assert { :ok, "+02:00" } = format(date, "{Z:}")
     assert { :ok, "+02:00:00" } = format(date, "{Z::}")
 
-    pst = Date.timezone("America/New_York")
-    date = Date.from({2007,11,19}, pst)
+    pst = DateTime.timezone("America/New_York")
+    date = DateTime.from({2007,11,19}, pst)
     assert { :ok, "EST" } = format(date, "{Zname}")
     assert { :ok, "-0500" } = format(date, "{Z}")
     assert { :ok, "-05:00" } = format(date, "{Z:}")
@@ -222,27 +222,27 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :format_compound_iso do
-    eet = Date.timezone("EET")
-    date = Date.from({{2013,3,5},{23,25,19}}, eet)
+    eet = DateTime.timezone("EET")
+    date = DateTime.from({{2013,3,5},{23,25,19}}, eet)
     assert { :ok, "2013-03-05T23:25:19+0200" } = format(date, "{ISO}")
     assert { :ok, "2013-03-05T21:25:19Z" }     = format(date, "{ISOz}")
 
-    pst = Date.timezone("PST")
+    pst = DateTime.timezone("PST")
     local = {{2013,3,5},{23,25,19}}
-    assert { :ok, "2013-03-05T23:25:19-0800" } = format(Date.from(local, pst), "{ISO}")
-    assert { :ok, "2013-03-05T23:25:19+0000" } = format(Date.from(local, :utc), "{ISO}")
+    assert { :ok, "2013-03-05T23:25:19-0800" } = format(DateTime.from(local, pst), "{ISO}")
+    assert { :ok, "2013-03-05T23:25:19+0000" } = format(DateTime.from(local, :utc), "{ISO}")
 
 
-    date = Date.from({{2007,11,19}, {1,37,48}}, eet)
+    date = DateTime.from({{2007,11,19}, {1,37,48}}, eet)
 
     assert { :ok, "2007-11-18" } = format(date, "{ISOdate}")
     assert { :ok, "20071119" }   = format(date, "{0YYYY}{0M}{0D}")
-    assert { :ok, "0007-01-02" } = format(Date.from({7,1,2}), "{ISOdate}")
+    assert { :ok, "0007-01-02" } = format(DateTime.from({7,1,2}), "{ISOdate}")
 
     assert { :ok, "23:37:48" } = format(date, "{ISOtime}")
     assert { :ok, "01:37:48" } = format(date, "{0h24}:{0m}:{0s}")
-    assert { :ok, "23:03:09" } = format(Date.from({{1,2,3},{23,3,9}}), "{ISOtime}")
-    assert { :ok, "23:03:09" } = format(Date.from({{1,2,3},{23,3,9}}), "{0h24}:{0m}:{0s}")
+    assert { :ok, "23:03:09" } = format(DateTime.from({{1,2,3},{23,3,9}}), "{ISOtime}")
+    assert { :ok, "23:03:09" } = format(DateTime.from({{1,2,3},{23,3,9}}), "{0h24}:{0m}:{0s}")
 
     assert { :ok, "2007-W47" }   = format(date, "{ISOweek}")
     assert { :ok, "2007-W47-1" } = format(date, "{ISOweek}-{WDmon}")
@@ -254,43 +254,43 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :format_compound_rfc1123 do
-    date = Date.from({{2013,3,5},{23,25,19}})
+    date = DateTime.from({{2013,3,5},{23,25,19}})
     assert { :ok, "Tue, 05 Mar 2013 23:25:19 GMT" } = format(date, "{RFC1123}")
     assert { :ok, "Tue, 05 Mar 2013 23:25:19 +0000" } = format(date, "{RFC1123z}")
 
-    eet = Date.timezone("EET")
-    date = Date.from({{2013,3,5},{23,25,19}}, eet)
+    eet = DateTime.timezone("EET")
+    date = DateTime.from({{2013,3,5},{23,25,19}}, eet)
     assert { :ok, "Tue, 05 Mar 2013 23:25:19 EET" } = format(date, "{RFC1123}")
     assert { :ok, "Tue, 05 Mar 2013 23:25:19 +0200" } = format(date, "{RFC1123z}")
 
-    pst = Date.timezone("PST")
-    date = Date.from({{2013,3,5},{23,25,19}}, pst)
+    pst = DateTime.timezone("PST")
+    date = DateTime.from({{2013,3,5},{23,25,19}}, pst)
     assert { :ok, "Tue, 05 Mar 2013 23:25:19 PST" } = format(date, "{RFC1123}")
     assert { :ok, "Tue, 05 Mar 2013 23:25:19 -0800" } = format(date, "{RFC1123z}")
   end
 
   test :format_compound_rfc3339 do
     local = {{2013,3,5},{23,25,19}}
-    date = Date.from(local)
+    date = DateTime.from(local)
 
     assert { :ok, "2013-03-05T23:25:19Z" } = format(date, "{RFC3339}")
 
-    eet = Date.timezone("EET")
-    assert { :ok, "2013-03-05T23:25:19+02:00" } = format(Date.from(local, eet), "{RFC3339}")
-    pst = Date.timezone("PST")
-    assert { :ok, "2013-03-05T23:25:19-08:00" } = format(Date.from(local, pst), "{RFC3339}")
+    eet = DateTime.timezone("EET")
+    assert { :ok, "2013-03-05T23:25:19+02:00" } = format(DateTime.from(local, eet), "{RFC3339}")
+    pst = DateTime.timezone("PST")
+    assert { :ok, "2013-03-05T23:25:19-08:00" } = format(DateTime.from(local, pst), "{RFC3339}")
   end
 
   test :format_compound_common do
     local = {{2013,3,5},{23,25,19}}
-    date = Date.from(local)
+    date = DateTime.from(local)
 
-    pst = Date.timezone("PST")
+    pst = DateTime.timezone("PST")
     assert { :ok, "Tue Mar  5 23:25:19 2013" } = format(date, "{ANSIC}")
     assert { :ok, "Tue Mar  5 23:25:19 UTC 2013" } = format(date, "{UNIX}")
-    assert { :ok, "Tue Mar  5 23:25:19 PST 2013" } = format(Date.from(local, pst), "{UNIX}")
+    assert { :ok, "Tue Mar  5 23:25:19 PST 2013" } = format(DateTime.from(local, pst), "{UNIX}")
 
-    date = Date.from({{2013,3,5},{15,25,19}})
+    date = DateTime.from({{2013,3,5},{15,25,19}})
     assert { :ok, "3:25PM" } = DateFormat.format(date, "{kitchen}")
   end
 
@@ -298,8 +298,8 @@ defmodule DateFormatTest.FormatDefault do
   # http://www.ruby-doc.org/core-2.0/Time.html#method-i-strftime
   # http://golang.org/pkg/time/#pkg-constants
   test :format_full do
-    minus6 = Date.timezone(-6)
-    date = Date.from({{2007,11,19}, {8,37,48}}, minus6)
+    minus6 = DateTime.timezone(-6)
+    date = DateTime.from({{2007,11,19}, {8,37,48}}, minus6)
 
     assert { :ok, "083748-0600" } = format(date, "{0h24}{0m}{0s}{Z}")
     assert { :ok, "08:37:48-06:00" } = format(date, "{0h24}:{0m}:{0s}{Z:}")
@@ -311,7 +311,7 @@ defmodule DateFormatTest.FormatDefault do
     assert { :ok, "2007-W47-1T08:37:48-06:00" } = format(date, "{WYYYY}-W{Wiso}-{WDmon}T{0h24}:{m}:{s}{Z:}")
 
     mst = Timezone.get("MST")
-    date = Date.from({{2007,11,9}, {8,37,48}}, mst)
+    date = DateTime.from({{2007,11,9}, {8,37,48}}, mst)
 
     assert { :ok, "20071109T0837" } = format(date, "{YYYY}{M}{0D}T{0h24}{m}")
     assert { :ok, "2007-11-09T08:37" } = format(date, "{YYYY}-{M}-{0D}T{0h24}:{m}")
@@ -325,12 +325,12 @@ defmodule DateFormatTest.FormatDefault do
   end
 
   test :unicode do
-    date = Date.from({{2007,11,9}, {8,37,48}})
+    date = DateTime.from({{2007,11,9}, {8,37,48}})
     assert { :ok, "Fri å∫ç∂ {08…37…48} ¿UTC?" } = format(date, "{WDshort} å∫ç∂ {{{0h24}…{m}…{s}} ¿{Zname}?")
   end
 
   test :tokens do
-    date = Date.now()
+    date = DateTime.now()
     assert {:ok, "" } = format(date, "")
     assert {:ok, "abc" } = format(date, "abc")
     assert {:ok, "Use { as oft{en as you like{" } = format(date, "Use {{ as oft{{en as you like{{")

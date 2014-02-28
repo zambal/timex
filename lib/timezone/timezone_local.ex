@@ -1,4 +1,5 @@
 defmodule Timezone.Local do
+  require Timezone
   @moduledoc """
   Contains the logic and parser for extracting local timezone configuration.
   """
@@ -554,9 +555,9 @@ defmodule Timezone.Local do
   Looks up the local timezone configuration. Returns the name of a timezone
   in the Olson database.
   """
-  @spec lookup(DateTime.t | nil) :: String.t
+  #@spec lookup(DateTime.t | nil) :: String.t
 
-  def lookup(), do: Date.universal |> lookup
+  def lookup(), do: DateTime.universal |> lookup
   def lookup(date) do
     case :os.type() do
       {:unix, :darwin} -> localtz(:osx, date)
@@ -722,13 +723,7 @@ defmodule Timezone.Local do
 
   # See http://linux.about.com/library/cmd/blcmdl5_tzfile.htm or
   # https://github.com/eggert/tz/blob/master/tzfile.h for details on the tzfile format
-  # NOTE: These are defined as records, but I would've preferred to use `defrecordp` here to 
-  # keep them private. The problem is that it is not possible to do the kind of manipulation
-  # of records I'm doing in `parse_long`, etc. This is because unlike `defrecord`, `defrecordp`'s
-  # functionality is based around macros and compile time knowledge. To reflect my desire to keep
-  # these private, I've given them names in the `defrecordp` format, but they are still exposed
-  # publically.
-  defrecord :tzfile,
+  defrecordp :tzfile,
     # six big-endian 32-bit integers:
     #  number of UTC/local indicators
     utc_local_num: 0,
@@ -748,17 +743,17 @@ defmodule Timezone.Local do
     zones: [],
     # Leap second adjustments
     leaps: []
-  defrecord :zone,
+  defrecordp :tzone,
     offset:       0,
     is_dst?:      false,
     abbrev_index: 0,
     name:         "",
     is_std?:      false,
     is_utc?:      false
-  defrecord :transition,
+  defrecordp :tztx,
     when?:   0,
     zone:    nil
-  defrecord :leap,
+  defrecordp :tzleap,
     when?:   0,
     adjust:  0
 
@@ -767,107 +762,107 @@ defmodule Timezone.Local do
   parses out the timezone for the provided reference date, or current UTC time
   if one wasn't provided.
   """
-  @spec parse_tzfile(binary, DateTime.t | nil) :: {:ok, String.t} | {:error, term}
+  #@spec parse_tzfile(binary, DateTime.t | nil) :: {:ok, String.t} | {:error, term}
 
-  def parse_tzfile(tzdata), do: parse_tzfile(tzdata, Date.univeral())
-  def parse_tzfile(tzdata, DateTime[] = reference_date) do
+  def parse_tzfile(tzdata), do: parse_tzfile(tzdata, DateTime.universal())
+  def parse_tzfile(tzdata, %DateTime{} = reference_date) do
     case tzdata do
       << ?T,?Z,?i,?f, rest :: binary >> ->
         # Trim reserved space
         << _ :: [bytes, size(16)], data :: binary >> = rest
         # Num of UTC/Local indicators
-        {record, remaining} = {:tzfile[], data}
-          |> parse_long(:utc_local_num)
-          |> parse_long(:std_wall_num)
-          |> parse_long(:leap_num)
-          |> parse_long(:time_num)
-          |> parse_long(:zone_num)
-          |> parse_long(:char_num)
+        {file, remaining} = {tzfile(), data}
+          |> parse_long(fn rec, {val, bin} -> { tzfile(rec, utc_local_num: val), bin } end)
+          |> parse_long(fn rec, {val, bin} -> { tzfile(rec, std_wall_num: val), bin } end)
+          |> parse_long(fn rec, {val, bin} -> { tzfile(rec, leap_num: val), bin } end)
+          |> parse_long(fn rec, {val, bin} -> { tzfile(rec, time_num: val), bin } end)
+          |> parse_long(fn rec, {val, bin} -> { tzfile(rec, zone_num: val), bin } end)
+          |> parse_long(fn rec, {val, bin} -> { tzfile(rec, char_num: val), bin } end)
         # Extract transition times
-        num_times = Range.new(1, record.time_num)
-        {record, remaining} = Enum.reduce num_times, {record, remaining}, fn _, {r, d} ->
-          {transition, rem} = {:transition[], d}
-            |> parse_long(:when?)
-          {r.update(transitions: r.transitions ++ [transition]), rem}
+        num_times = Range.new(1, tzfile(file, :time_num))
+        {file, remaining} = Enum.reduce num_times, {file, remaining}, fn _, {f, d} ->
+          {transition, rem} = {tztx(), d}
+            |> parse_long(fn rec, {val, bin} -> { tztx(rec, when?: val), bin } end)
+          {tzfile(f, transitions: tzfile(f, :transitions) ++ [transition]), rem}
         end
         # Extract transition zone indices
-        {record, remaining} = Enum.reduce num_times, {record, remaining}, fn i, {r, d} ->
+        {file, remaining} = Enum.reduce num_times, {file, remaining}, fn i, {f, d} ->
           {txzone, rem} = d |> parse_uchar
-          transition  = r.transitions |> Enum.at(i - 1)
-          updated     = transition.update(zone: txzone)
-          transitions = r.transitions |> List.replace_at(i - 1, updated)
-          {r.update(transitions: transitions), rem}
+          transition  = tzfile(f, :transitions) |> Enum.at(i - 1)
+          updated     = tztx(transition, zone: txzone)
+          transitions = tzfile(f, :transitions) |> List.replace_at(i - 1, updated)
+          {tzfile(f, transitions: transitions), rem}
         end
         # Extract zone data
-        num_zones = Range.new(1, record.zone_num)
-        {record, remaining} = Enum.reduce num_zones, {record, remaining}, fn _, {r, d} ->
-          {zone, rem} = {:zone[], d}
-            |> parse_long(:offset)
-            |> parse_bool(:is_dst?)
-            |> parse_uchar(:abbrev_index)
-          {r.update(zones: r.zones ++ [zone]), rem}
+        num_zones = Range.new(1, tzfile(file, :zone_num))
+        {file, remaining} = Enum.reduce num_zones, {file, remaining}, fn _, {f, d} ->
+          {zone, rem} = {tzone(), d}
+            |> parse_long(fn rec, {val, bin} -> { tzone(rec, offset: val), bin } end)
+            |> parse_bool(fn rec, {val, bin} -> { tzone(rec, is_dst?: val), bin } end)
+            |> parse_uchar(fn rec, {val, bin} -> { tzone(rec, abbrev_index: val), bin } end)
+          {tzfile(f, zones: tzfile(f, :zones) ++ [zone]), rem}
         end
         # Extract zone abbreviations
-        {record, remaining} = Enum.reduce num_zones, {record, remaining}, fn i, {r, d} ->
+        {file, remaining} = Enum.reduce num_zones, {file, remaining}, fn i, {f, d} ->
           {str, rem} = d |> parse_string(4)
           # Each abbreviation is a null terminated string, so trim the terminator
           <<abbrev :: [binary, size(3)], _ :: binary>> = str
           # Update the zone with it's extracted abbreviation
-          zone    = r.zones |> Enum.at(i - 1)
-          updated = zone.update(name: abbrev)
-          zones   = r.zones |> List.replace_at(i - 1, updated)
-          {r.update(zones: zones), rem}
+          zone    = tzfile(f, :zones) |> Enum.at(i - 1)
+          updated = tzone(zone, name: abbrev)
+          zones   = tzfile(f, :zones) |> List.replace_at(i - 1, updated)
+          {tzfile(f, zones: zones), rem}
         end
         # Extract leap adjustment pairs
-        leap_pairs = Range.new(1, record.leap_num)
+        leap_pairs = Range.new(1, tzfile(file, :leap_num))
         # We may not have any valid pairs to look for, so check our range to
         # see if this extraction should just be a no-op
         noop?      = Range.last(leap_pairs) == 0
-        {record, remaining} = Enum.reduce leap_pairs, {record, remaining}, fn _, {r, d} ->
+        {file, remaining} = Enum.reduce leap_pairs, {file, remaining}, fn _, {f, d} ->
           if noop? do
-            {r, d}
+            {f, d}
           else
-            {leap, rem} = {:leap[], d}
-              |> parse_long(:when?)
-              |> parse_long(:adjust)
-            {r.update(leaps: r.leaps ++ [leap]), rem}
+            {leap, rem} = {tzleap(), d}
+              |> parse_long(fn rec, {val, bin} -> { tzleap(rec, when?: val), bin } end)
+              |> parse_long(fn rec, {val, bin} -> { tzleap(rec, adjust: val), bin } end)
+            {tzfile(f, leaps: tzfile(f, :leaps) ++ [leap]), rem}
           end
         end
         # Extract standard/wall indicators
-        num_stdwall = Range.new(1, record.std_wall_num)
-        {record, remaining} = Enum.reduce num_stdwall, {record, remaining}, fn i, {r, d} ->
+        num_stdwall = Range.new(1, tzfile(file, :std_wall_num))
+        {file, remaining} = Enum.reduce num_stdwall, {file, remaining}, fn i, {f, d} ->
           {is_std?, rem} = d |> parse_bool
           # Update the zone with the extracted info
-          zone    = r.zones |> Enum.at(i - 1)
-          updated = zone.update(is_std?: is_std?)
-          zones   = r.zones |> List.replace_at(i - 1, updated)
-          {r.update(zones: zones), rem}
+          zone    = tzfile(f, :zones) |> Enum.at(i - 1)
+          updated = tzone(zone, is_std?: is_std?)
+          zones   = tzfile(f, :zones) |> List.replace_at(i - 1, updated)
+          {tzfile(f, zones: zones), rem}
         end
         # Extract UTC/local indicators
-        num_utclocal = Range.new(1, record.utc_local_num)
-        {record, _} = Enum.reduce num_utclocal, {record, remaining}, fn i, {r, d} ->
+        num_utclocal = Range.new(1, tzfile(file, :utc_local_num))
+        {file, _} = Enum.reduce num_utclocal, {file, remaining}, fn i, {f, d} ->
           {is_utc?, rem} = d |> parse_bool
           # Update the zone with the extracted info
-          zone    = r.zones |> Enum.at(i - 1)
-          updated = zone.update(is_utc?: is_utc?)
-          zones   = r.zones |> List.replace_at(i - 1, updated)
-          {r.update(zones: zones), rem}
+          zone    = tzfile(f, :zones) |> Enum.at(i - 1)
+          updated = tzone(zone, is_utc?: is_utc?)
+          zones   = tzfile(f, :zones) |> List.replace_at(i - 1, updated)
+          {tzfile(f, zones: zones), rem}
         end
         # Get the zone for the current time
-        timestamp  = reference_date |> Date.to_secs
-        current_tt = record.transitions
-          |> Enum.sort(fn :transition[when?: utime1], :transition[when?: utime2] -> utime1 > utime2 end)
-          |> Enum.reject(fn :transition[when?: unix_time] -> unix_time > timestamp end)
+        timestamp  = reference_date |> DateTime.to_secs
+        current_tt = tzfile(file, :transitions)
+          |> Enum.sort(fn {:tztx, utime1, _}, {:tztx, utime2, _} -> utime1 > utime2 end)
+          |> Enum.reject(fn {:tztx, unix_time, _} -> unix_time > timestamp end)
           |> List.first
         # We'll need these handy
-        zones_available = record.zones
+        zones_available = tzfile(file, :zones)
         # Attempt to get the proper timezone for the current transition we're in
         result = case current_tt do
-          :transition[zone: zone_index] ->
-            if zone_index <= Enum.count(record.zones) - 1 do
+          {:tztx, _, zone_index} ->
+            if zone_index <= Enum.count(tzfile(file, :zones)) - 1 do
               # Sweet, we have a matching zone, we have our result!
-              :zone[name: name] = zones_available |> Enum.fetch!(current_tt.zone)
-              {:ok, name}
+              result_zone = zones_available |> Enum.fetch!(zone_index)
+              {:ok, tzone(result_zone, :name)}
             else
               nil # Fallback to first standard-time zone
             end
@@ -879,16 +874,17 @@ defmodule Timezone.Local do
           # Damn, let's fallback to the first standard-time zone available
           true ->
             fallback = zones_available
-              |> Enum.filter(fn zone -> zone.is_std? end)
+              |> Enum.filter(fn zone -> tzone(zone, :is_std?) end)
               |> List.first
             case fallback do
               # Well, there are no standard-time zones then, just take the first zone available
               nil  -> 
-                :zone[name: name] = zones_available |> List.first
-                {:ok, name}
+                last_transition = tzfile(file, :transitions) |> List.last
+                result_zone = zones_available |> Enum.fetch!(tztx(last_transition, :zone))
+                {:ok, tzone(result_zone, :name)}
               # Found a reasonable fallback zone, success?
-              :zone[name: name] ->
-                {:ok, name}
+              _ ->
+                {:ok, tzone(fallback, :name)}
             end
         end
       false ->
@@ -896,17 +892,20 @@ defmodule Timezone.Local do
     end
   end
 
-  defp parse_long({record, data}, prop) do
+  @spec parse_long({term, binary}, fun) :: {term, binary}
+  defp parse_long({record, data}, action) do
     {val, rest} = data |> parse_long
-    { record.update([{prop, val}]), rest }
+    action.(record, {val, rest})
   end
-  defp parse_uchar({record, data}, prop) do
+  @spec parse_uchar({term, binary}, fun) :: {term, binary}
+  defp parse_uchar({record, data}, action) do
     {val, rest} = data |> parse_uchar
-    { record.update([{prop, val}]), rest }
+    action.(record, {val, rest})
   end
-  defp parse_bool({record, data}, prop) do
+  @spec parse_bool({term, binary}, fun) :: {term, binary}
+  defp parse_bool({record, data}, action) do
     {val, rest} = data |> parse_bool
-    { record.update([{prop, val}]), rest }
+    action.(record, {val, rest})
   end
   defp parse_long(<<val :: 32, rest :: binary>>), do: { val, rest }
   defp parse_uchar(<<val :: 8, rest :: binary>>), do: { val, rest }

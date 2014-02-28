@@ -1,4 +1,5 @@
 defmodule Timezone.Dst do
+  require Timezone
   @moduledoc """
   Rules for determining if a datetime falls within a daylight savings period.
   """
@@ -6,14 +7,14 @@ defmodule Timezone.Dst do
   @doc """
   Check if the provided datetime is in daylight savings time
   """
-  @spec is_dst?(DateTime.t) :: true | false | :ambiguous_time | :doesnt_exist
-  def is_dst?(DateTime[timezone: TimezoneInfo[dst_start_day: :undef]]), do: false
-  def is_dst?(DateTime[year: year, month: month, day: day, hour: hour, minute: min, second: sec, timezone: tz]) do
-    TimezoneInfo[
-      gmt_offset_dst: dst_shift,
-      dst_start_day: dst_start_rule, dst_start_time: dst_start_time, 
-      dst_end_day: dst_end_rule, dst_end_time: dst_end_time 
-    ] = tz
+  #@spec is_dst?(DateTime.t) :: true | false | :ambiguous_time | :doesnt_exist
+  def is_dst?(%DateTime{:timezone => %Timezone{:dst_start_day => :undef}}), do: false
+  def is_dst?(%DateTime{:date => %Date{:year => year, :month => month, :day => day}, :time => %Time{:hours => hour, :minutes => min, :seconds => sec}, :timezone => tz}) do
+    %Timezone{
+      :gmt_offset_dst => dst_shift,
+      :dst_start_day => dst_start_rule, :dst_start_time => dst_start_time, 
+      :dst_end_day => dst_end_rule,     :dst_end_time => dst_end_time 
+    } = tz
 
     dst_start_day = get_dst_day_of_year(dst_start_rule, year)
     dst_end_day   = get_dst_day_of_year(dst_end_rule, year)
@@ -84,13 +85,13 @@ defmodule Timezone.Dst do
   defp is_dst_date(start_day, end_day, current_day) when start_day > end_day and (current_day > start_day or current_day < end_day),  do: true
 
   defp get_dst_day_of_year({weekday, day, month}, year) when (weekday == :last) or (weekday == 5) do
-    month_num = Date.month_to_num(month)
-    day_num   = Date.day_to_num(day)
+    month_num = DateTime.month_to_num(month)
+    day_num   = DateTime.day_to_num(day)
     get_last_dst(day_num, month_num, year)
   end
   defp get_dst_day_of_year({weekday, day, month}, year) when (weekday > 0) and (weekday <= 4) do
-    month_num = Date.month_to_num(month)
-    day_num   = Date.day_to_num(day)
+    month_num = DateTime.month_to_num(month)
+    day_num   = DateTime.day_to_num(day)
     dst_days  = get_day_of_year({year, month_num, 1})
     dst_day   = :calendar.day_of_the_week({year, month_num, 1})
     case (dst_day === day_num) and (weekday === 1) do

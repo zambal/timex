@@ -16,11 +16,11 @@ defmodule DateTime do
     * compare dates
     * date arithmetic
   """
-
-  defstruct date: %Date{}, time: %Time{}, timzone: Timezone.get(:utc)
+  @dtstruct %{__struct__: DateTime, date: %Date{}, time: %Time{}, timezone: %Timezone{}}
+  defstruct Map.to_list(@dtstruct)
 
   # Date types
-  @type dtz :: { datetime, TimezoneInfo.t }
+  @type dtz :: { datetime, term } # term should be Timezone.t, but no struct types yet
   @type datetime :: { date, time }
   @type date :: { year, month, day }
   @type year :: non_neg_integer
@@ -61,30 +61,26 @@ defmodule DateTime do
   ## Examples
 
       timezone()       #=> <local time zone>
-      timezone(:utc)   #=> { 0.0, "UTC" }
-      timezone(2)      #=> { 2.0, "EET" }
-      timezone("+2")   #=> { 2.0, "EET" }
-      timezone("EET")  #=> { 2.0, "EET" }
+      timezone(:utc)   #=> %Timezone{ full_name: "UTC" }
+      timezone(2)      #=> %Timezone{ full_name: "Etc/GMT+2" }
+      timezone("+2")   #=> %Timezone{ full_name: "Etc/GMT+2" }
+      timezone("EET")  #=> %Timezone{ full_name: "Africa/Cairo" }
 
   """
-  @spec timezone() :: TimezoneInfo.t
-  @spec timezone(:local, DateTime.t | nil) :: TimezoneInfo.t
-  @spec timezone(:utc | number | binary) :: TimezoneInfo.t
-
-  def timezone(),             do: Timezone.local()
-  def timezone(:local),       do: Timezone.local()
-  def timezone(name),         do: Timezone.get(name)
-  def timezone(:local, date), do: Timezone.local(date)
+  defdelegate timezone(),             to: Timezone, as: :local
+  defdelegate timezone(:local),       to: Timezone, as: :local
+  defdelegate timezone(name),         to: Timezone, as: :get
+  defdelegate timezone(:local, name), to: Timezone, as: :local
 
   @doc """
   Get current date.
 
   ## Examples
 
-      Date.now #=> DateTime[year: 2013, month: 3, day: 16, hour: 11, minute: 1, second: 12, timezone: TimezoneInfo[...]]
+      Date.now #=> %DateTime{date: %Date{year: 2013, ...}, %Time{hours: 11, ...} timezone: %Timezone{...}}
 
   """
-  @spec now() :: DateTime.t
+  #@spec now() :: DateTime.t
   def now do
     construct(:calendar.universal_time(), timezone(:utc))
   end
@@ -115,7 +111,7 @@ defmodule DateTime do
       Date.local #=> DateTime[year: 2013, month: 3, day: 16, hour: 11, minute: 1, second: 12, timezone: TimezoneInfo[...]]
 
   """
-  @spec local() :: DateTime.t
+  #@spec local() :: DateTime.t
   def local, do: construct(:calendar.local_time(), timezone(:local))
 
   @doc """
@@ -128,8 +124,8 @@ defmodule DateTime do
       Date.now |> Date.local
 
   """
-  @spec local(date :: DateTime.t) :: DateTime.t
-  def local(DateTime[] = date), do: local(date, timezone(:local))
+  #@spec local(date :: DateTime.t) :: DateTime.t
+  def local(%DateTime{} = date), do: local(date, timezone(:local))
 
   @doc """
   Convert a date to a local date, using the provided timezone
@@ -139,11 +135,11 @@ defmodule DateTime do
       Date.now |> Date.local(timezone(:utc))
 
   """
-  @spec local(date :: DateTime.t, tz :: TimezoneInfo.t) :: DateTime.t
-  def local(DateTime[timezone: tz] = date, localtz) do
+  #@spec local(date :: DateTime.t, tz :: Timezone.t) :: DateTime.t
+  def local(%DateTime{timezone: tz} = date, localtz) do
     if tz !== localtz do
       Timezone.convert(date, localtz)
-      date.update(timezone: localtz)
+      %DateTime{date | :timezone => localtz}
     else
       date
     end
@@ -154,7 +150,7 @@ defmodule DateTime do
 
   See also `local/0`.
   """
-  @spec universal() :: DateTime.t
+  #@spec universal() :: DateTime.t
   def universal, do: construct(:calendar.universal_time(), timezone(:utc))
 
   @doc """
@@ -167,7 +163,7 @@ defmodule DateTime do
       Date.now |> Date.universal
 
   """
-  @spec universal(DateTime.t) :: DateTime.t
+  #@spec universal(DateTime.t) :: DateTime.t
   def universal(date), do: Timezone.convert(date, timezone(:utc))
 
   @doc """
@@ -180,7 +176,7 @@ defmodule DateTime do
       Date.zero |> Date.to_secs #=> 0
 
   """
-  @spec zero() :: DateTime.t
+  #@spec zero() :: DateTime.t
   def zero, do: construct({0, 1, 1}, {0, 0, 0}, timezone(:utc))
 
   @doc """
@@ -194,7 +190,7 @@ defmodule DateTime do
       Date.epoch |> Date.to_secs #=> 0
 
   """
-  @spec epoch() :: DateTime.t
+  #@spec epoch() :: DateTime.t
   def epoch, do: construct({1970, 1, 1}, {0, 0, 0}, timezone(:utc))
 
   @doc """
@@ -232,8 +228,8 @@ defmodule DateTime do
       Date.from({2014,3,16}, Date.timezone("PST")) #=> DateTime[...]
 
   """
-  @spec from(date | datetime) :: dtz
-  @spec from(date | datetime, :utc | :local | TimezoneInfo.t) :: dtz
+  #@spec from(date | datetime) :: dtz
+  #@spec from(date | datetime, :utc | :local | Timezone.t) :: dtz
 
   def from({_,_,_} = date),                       do: from(date, :utc)
   def from({{_,_,_},{_,_,_}} = datetime),         do: from(datetime, :utc)
@@ -241,8 +237,8 @@ defmodule DateTime do
   def from({{_,_,_},{_,_,_}} = datetime, :utc),   do: construct(datetime, timezone(:utc))
   def from({_,_,_} = date, :local),               do: from({date, {0,0,0}}, timezone(:local))
   def from({{_,_,_},{_,_,_}} = datetime, :local), do: from(datetime, timezone(:local))
-  def from({_,_,_} = date, TimezoneInfo[] = tz),  do: from({date, {0,0,0}}, tz)
-  def from({{_,_,_},{_,_,_}} = datetime, TimezoneInfo[] = tz), do: construct(datetime, tz)
+  def from({_,_,_} = date, %Timezone{} = tz),  do: from({date, {0,0,0}}, tz)
+  def from({{_,_,_},{_,_,_}} = datetime, %Timezone{} = tz), do: construct(datetime, tz)
 
   @doc """
   Construct a date from a time interval since Epoch or year 0.
@@ -259,14 +255,16 @@ defmodule DateTime do
       |> Date.set(:timezone, timezone(:local))      #=> yields the same value as Date.now would
 
   """
-  @spec from(timestamp, :timestamp) :: DateTime.t
-  @spec from(number, :secs | :days)  :: DateTime.t
-  @spec from(timestamp, :timestamp, :epoch | :zero) :: DateTime.t
-  @spec from(number, :secs | :days, :epoch | :zero)  :: DateTime.t
+  #@spec from(timestamp, :timestamp) :: DateTime.t
+  #@spec from(number, :secs | :days)  :: DateTime.t
+  #@spec from(timestamp, :timestamp, :epoch | :zero) :: DateTime.t
+  #@spec from(number, :secs | :days, :epoch | :zero)  :: DateTime.t
   def from(value, type, reference \\ :epoch)
 
   def from({mega, sec, _}, :timestamp, :epoch), do: from(mega * @million + sec, :secs)
   def from({mega, sec, _}, :timestamp, :zero),  do: from(mega * @million + sec, :secs, :zero)
+  def from(%Time{} = time, :timestamp, :epoch), do: time |> Time.to_secs |> trunc |> from(:secs)
+  def from(%Time{} = time, :timestamp, :zero),  do: time |> Time.to_secs |> trunc |> from(:secs, :zero)
   def from(sec, :secs, :epoch) do
     construct(:calendar.gregorian_seconds_to_datetime(trunc(sec) + epoch(:secs)), timezone(:utc))
   end
@@ -291,9 +289,9 @@ defmodule DateTime do
       Date.convert(date, :secs) + Date.epoch(:secs) == Date.to_secs(date, :zero)  #=> true
 
   """
-  @spec convert(DateTime.t) :: timestamp
-  @spec convert(DateTime.t, :timestamp)   :: timestamp
-  @spec convert(DateTime.t, :secs | :days) :: integer
+  #@spec convert(DateTime.t) :: timestamp
+  #@spec convert(DateTime.t, :timestamp)   :: timestamp
+  #@spec convert(DateTime.t, :secs | :days) :: integer
   def convert(date, type \\ :timestamp)
 
   def convert(date, :timestamp),  do: to_timestamp(date)
@@ -310,8 +308,8 @@ defmodule DateTime do
       Date.epoch |> Date.to_timestamp #=> {0,0,0}
 
   """
-  @spec to_timestamp(DateTime.t) :: timestamp
-  @spec to_timestamp(DateTime.t, :epoch | :zero) :: timestamp
+  #@spec to_timestamp(DateTime.t) :: timestamp
+  #@spec to_timestamp(DateTime.t, :epoch | :zero) :: timestamp
   def to_timestamp(date, reference \\ :epoch)
 
   def to_timestamp(date, :epoch) do
@@ -334,12 +332,12 @@ defmodule DateTime do
       Date.from({{1999, 1, 2}, {12,13,14}}) |> Date.to_secs  #=> 915279194
 
   """
-  @spec to_secs(DateTime.t) :: integer
-  @spec to_secs(DateTime.t, :epoch | :zero) :: integer
+  #@spec to_secs(DateTime.t) :: integer
+  #@spec to_secs(DateTime.t, :epoch | :zero) :: integer
   def to_secs(date, reference \\ :epoch)
 
   def to_secs(date, :epoch), do: to_secs(date, :zero) - epoch(:secs)
-  def to_secs(DateTime[year: y, month: m, day: d, hour: h, minute: min, second: s], :zero) do
+  def to_secs(%DateTime{:date => %Date{:year => y, :month => m, :day => d}, :time => %Time{:hours => h, :minutes => min, :seconds => s}}, :zero) do
     :calendar.datetime_to_gregorian_seconds({{y, m, d}, {h, min, s}})
   end
 
@@ -353,12 +351,12 @@ defmodule DateTime do
       to_days(now())  #=> 15780
 
   """
-  @spec to_days(DateTime.t) :: integer
-  @spec to_days(DateTime.t, :epoch | :zero) :: integer
+  #@spec to_days(DateTime.t) :: integer
+  #@spec to_days(DateTime.t, :epoch | :zero) :: integer
   def to_days(date, reference \\ :epoch)
 
   def to_days(date, :epoch), do: to_days(date, :zero) - epoch(:days)
-  def to_days(DateTime[year: y, month: m, day: d], :zero) do
+  def to_days(%DateTime{:date => %Date{:year => y, :month => m, :day => d}}, :zero) do
     :calendar.date_to_gregorian_days({y, m, d})
   end
 
@@ -370,14 +368,14 @@ defmodule DateTime do
       Date.epoch |> Date.weekday  #=> 4 (i.e. Thursday)
 
   """
-  @spec weekday(DateTime.t) :: weekday
+  #@spec weekday(DateTime.t) :: weekday
 
-  def weekday(DateTime[year: y, month: m, day: d]), do: :calendar.day_of_the_week({y, m, d})
+  def weekday(%DateTime{:date => %Date{:year => y, :month => m, :day => d}}), do: :calendar.day_of_the_week({y, m, d})
 
   @doc """
   Returns the ordinal day number of the date.
   """
-  @spec day(DateTime.t) :: daynum
+  #@spec day(DateTime.t) :: daynum
 
   def day(date) do
     start_of_year = date |> set([month: 1, day: 1])
@@ -393,9 +391,9 @@ defmodule DateTime do
       Date.epoch |> Date.iso_week  #=> {1970,1}
 
   """
-  @spec iso_week(DateTime.t) :: {year, weeknum}
+  #@spec iso_week(DateTime.t) :: {year, weeknum}
 
-  def iso_week(DateTime[year: y, month: m, day: d]) do
+  def iso_week(%DateTime{:date => %Date{:year => y, :month => m, :day => d}}) do
     :calendar.iso_week_number({y, m, d})
   end
   def iso_week(date), do: iso_week(from(date, :utc))
@@ -438,6 +436,15 @@ defmodule DateTime do
     def day_name(unquote(day_num)), do: unquote(name)
   end
   def day_name(x), do: raise(:badday, x)
+
+  @doc """
+  Get the short name of the day corresponding to the provided number
+  """
+  @spec day_shortname(month) :: binary
+  @weekdays |> Enum.each fn {name, day_num} ->
+    def day_shortname(unquote(day_num)), do: String.slice(unquote(name), 0..2)
+  end
+  def day_shortname(x), do: raise(:badday, x)
 
   @doc """
   Get the number of the month corresponding to the given name.
@@ -499,9 +506,9 @@ defmodule DateTime do
       Date.epoch |> Date.iso_triplet  #=> {1970, 1, 4}
 
   """
-  @spec iso_triplet(DateTime.t) :: {year, weeknum, weekday}
+  #@spec iso_triplet(DateTime.t) :: {year, weeknum, weekday}
 
-  def iso_triplet(DateTime[] = datetime) do
+  def iso_triplet(%DateTime{} = datetime) do
     { iso_year, iso_week } = iso_week(datetime)
     { iso_year, iso_week, weekday(datetime) }
   end
@@ -514,8 +521,8 @@ defmodule DateTime do
       Date.epoch |> Date.days_in_month  #=> 31
 
   """
-  @spec days_in_month(DateTime.t | {year, month}) :: num_of_days
-  def days_in_month(DateTime[year: year, month: month]) do
+  #@spec days_in_month(DateTime.t | {year, month}) :: num_of_days
+  def days_in_month(%DateTime{:date => %Date{:year => year, :month => month}}) do
     :calendar.last_day_of_the_month(year, month)
   end
   def days_in_month(year, month) do
@@ -532,10 +539,10 @@ defmodule DateTime do
       Date.is_leap?(2012)          #=> true
 
   """
-  @spec is_leap?(DateTime.t | year) :: boolean
+  #@spec is_leap?(DateTime.t | year) :: boolean
 
-  def is_leap?(year) when is_integer(year), do: :calendar.is_leap_year(year)
-  def is_leap?(DateTime[year: year]),       do: is_leap?(year)
+  def is_leap?(year) when is_integer(year),               do: :calendar.is_leap_year(year)
+  def is_leap?(%DateTime{:date => %Date{:year => year}}), do: is_leap?(year)
 
   @doc """
   Return a boolean indicating whether the given date is valid.
@@ -548,12 +555,14 @@ defmodule DateTime do
       {{12,12,12},{1,1,1}, Date.timezone()} |> Date.is_valid? #=> true
 
   """
-  @spec is_valid?(dtz | DateTime.t) :: boolean
+  #@spec is_valid?(dtz | DateTime.t) :: boolean
 
   def is_valid?({date, time, tz}) do
     :calendar.valid_date(date) and is_valid_time?(time) and is_valid_tz?(tz)
   end
-  def is_valid?(DateTime[year: y, month: m, day: d, hour: h, minute: min, second: sec, timezone: tz] = _date) do
+  def is_valid?(%DateTime{:date => date, :time => time, :timezone => tz}) do
+    %Date{:year => y, :month => m, :day => d}            = date
+    %Time{:hours => h, :minutes => min, :seconds => sec} = time
     :calendar.valid_date({y,m,d}) and is_valid_time?({h,min,sec}) and is_valid_tz?(tz)
   end
 
@@ -561,8 +570,8 @@ defmodule DateTime do
     hour >= 0 and hour < 24 and min >= 0 and min < 60 and sec >= 0 and sec < 60
   end
 
-  defp is_valid_tz?(TimezoneInfo[] = tz) when tz == TimezoneInfo[], do: false
-  defp is_valid_tz?(TimezoneInfo[]), do: true
+  defp is_valid_tz?(%Timezone{} = tz) when tz == %Timezone{}, do: false
+  defp is_valid_tz?(%Timezone{}), do: true
   defp is_valid_tz?(_), do: false
 
   @doc """
@@ -577,8 +586,8 @@ defmodule DateTime do
       |> Date.local #=> DateTime[month: 12, day: 31, hour: 0, minute: 59, second: 59, ...]
 
   """
-  @spec normalize(dtz) :: DateTime.t
-  @spec normalize(atom(), term) :: DateTime.t
+  #@spec normalize(dtz) :: DateTime.t
+  #@spec normalize(atom(), term) :: DateTime.t
 
   def normalize({date, time}), do: normalize({date, time, timezone(:utc)})
   def normalize({date, time, tz}) do
@@ -601,37 +610,44 @@ defmodule DateTime do
     end
   end
   defp normalize(:time, {hour,min,sec}) do
-    hour  = normalize(:hour, hour)
-    min   = normalize(:minute, min)
-    sec   = normalize(:second, sec)
+    hour  = normalize(:hours, hour)
+    min   = normalize(:minutes, min)
+    sec   = normalize(:seconds, sec)
     {hour, min, sec}
   end
-  defp normalize(:hour, hour) do
+  defp normalize(:hours, hour) do
     cond do
       hour < 0    -> 0
       hour > 23   -> 23
       true        -> hour
     end
   end
-  defp normalize(:minute, min) do
+  defp normalize(:minutes, min) do
     cond do
       min < 0    -> 0
       min > 59   -> 59
       true       -> min
     end
   end
-  defp normalize(:second, sec) do
+  defp normalize(:seconds, sec) do
     cond do
       sec < 0    -> 0
       sec > 59   -> 59
       true       -> sec
     end
   end
-  defp normalize(:msec, ms) do
+  defp normalize(:msecs, ms) do
     cond do
       ms < 0   -> 0
       ms > 999 -> 999
       true     -> ms
+    end
+  end
+  defp normalize(:usecs, us) do
+    cond do
+      us < 0   -> 0
+      us > 999 -> 999
+      true     -> us
     end
   end
   defp normalize(:timezone, tz), do: tz
@@ -666,62 +682,79 @@ defmodule DateTime do
       Date.now |> Date.set([minute: 74, validate: false])   #=> DateTime[minute: 74, ...]
 
   """
-  @spec set(DateTime.t, list({atom(), term})) :: DateTime.t
+  #@spec set(DateTime.t, list({atom(), term})) :: DateTime.t
 
-  def set(date, options) do
+  def set(%DateTime{} = date, options) do
     validate? = options |> List.keyfind(:validate, 0, true)
     Enum.reduce options, date, fn option, result ->
       case option do
         {:validate, _} -> result
         {:datetime, {{y, m, d}, {h, min, sec}}} ->
           if validate? do
-            result.update([
-              year:   normalize(y,   :year),
-              month:  normalize(m,   :month),
-              day:    normalize(d,   :day),
-              hour:   normalize(h,   :hour),
-              minute: normalize(min, :minute),
-              second: normalize(sec, :seonc)
-            ])
+            %DateTime{result | 
+            :date => 
+              %Date{
+                :year => normalize(:year, y), :month => normalize(:month, m), :day => normalize(:day, d)
+              }, 
+            :time => 
+              %Time{
+                :hours => normalize(:hours, h), :minutes => normalize(:minutes, min), :seconds => normalize(:seconds, sec)
+              }
+            }
           else
-            result.update([year: y, month: m, day: d, hour: h, minute: min, second: sec])
+            %DateTime{result |
+              :date => %Date{:year => y, :month => m, :day => d},
+              :time => %Time{:hours => h, :minutes => min, :seconds => sec}
+            }
           end
         {:date, {y, m, d}} ->
           if validate? do
-            result.update([year: normalize(:year, y), month: normalize(:month, m), day: normalize(:day, {y, m, d})])
+            %DateTime{result | :date => 
+              %Date{ result.date | :year => normalize(:year, y), :month => normalize(:month, m), :day => normalize(:day, {y,m,d})}
+            }
           else
-            result.update([year: y, month: m, day: d])
+            %DateTime{result | :date => %Date{ result.date | :year => y, :month => m, :day => d}}
           end
         {:time, {h, m, s}} ->
           if validate? do
-            result.update([hour: normalize(:hour, h), minute: normalize(:minute, m), second: normalize(:second, s)])
+            %DateTime{result | :time => 
+              %Time{ result.time | :hours => normalize(:hours, h), :minutes => normalize(:minutes, m), :seconds => normalize(:seconds, s)}
+            }
           else
-            result.update([hour: h, minute: m, second: s])
+            %DateTime{result | :time => %Time{ result.time | :hours => h, :minutes => m, :seconds => s}}
           end
         {:day, d} ->
           if validate? do
-            result.update(day: normalize(:day, {result.year, result.month, d}))
+            %DateTime{result | :date => 
+              %Date{ result.date | :day => normalize(:day, {result.date.day, result.date.month, d}) }
+            }
           else
-            result.update(day: d)
+            %DateTime{result | :date => %Date{ result.date | :day => d}}
           end
         {:timezone, tz} ->
           # Only convert timezones if they differ
           case result.timezone do
             # Date didn't have a timezone, so use UTC
-            nil       -> result.update(timezone: timezone(:utc))
+            nil       -> %DateTime{result | :timezone => timezone(:utc)}
             origin_tz ->
               if origin_tz !== tz do
                 converted = Timezone.convert(result, tz)
-                converted.update(timezone: tz)
+                %DateTime{converted | :timezone => tz}
               else
                 result
               end
           end
-        {name, val} when name in [:year, :month, :hour, :minute, :second, :ms] ->
+        {name, val} when name in [:year, :month] ->
           if validate? do
-            result.update([{name, normalize(name, val)}])
+            %DateTime{result | :date => Map.put(result.date, name, normalize(name, val))}
           else
-            result.update([{name, val}])
+            %DateTime{result | :date => Map.put(result.date, name, val)}
+          end
+        {name, val} when name in [:hours, :minutes, :seconds, :ms, :us] ->
+          if validate? do
+            %DateTime{result | :time => Map.put(result.time, name, normalize(name, val))}
+          else
+            %DateTime{result | :time => Map.put(result.time, name, val)}
           end
         {option_name, _}   -> raise "Invalid option passed to Date.set: #{option_name}"
       end
@@ -736,14 +769,14 @@ defmodule DateTime do
    * `1`  -- `this` comes before `other`
 
   """
-  @spec compare(DateTime.t, DateTime.t | :epoch | :zero | :distant_past | :distant_future) :: -1 | 0 | 1
+  #@spec compare(DateTime.t, DateTime.t | :epoch | :zero | :distant_past | :distant_future) :: -1 | 0 | 1
 
   def compare(date, :epoch),       do: compare(date, epoch())
   def compare(date, :zero),        do: compare(date, zero())
   def compare(_, :distant_past),   do: -1
   def compare(_, :distant_future), do: 1
   def compare(date, date),         do: 0
-  def compare(DateTime[timezone: thistz] = this, DateTime[timezone: othertz] = other) do
+  def compare(%DateTime{:timezone => thistz} = this, %DateTime{:timezone => othertz} = other) do
     localized = if thistz !== othertz do
       # Convert `other` to `this`'s timezone
       Timezone.convert(other, thistz)
@@ -761,15 +794,15 @@ defmodule DateTime do
   @doc """
   Determine if two dates represent the same point in time
   """
-  @spec equal?(DateTime.t, DateTime.t) :: boolean
+  #@spec equal?(DateTime.t, DateTime.t) :: boolean
   def equal?(this, other), do: compare(this, other) == 0
 
   @doc """
   Calculate time interval between two dates. If the second date comes after the
   first one in time, return value will be positive; and negative otherwise.
   """
-  @spec diff(DateTime.t, DateTime.t, :timestamp) :: timestamp
-  @spec diff(DateTime.t, DateTime.t, :secs | :days | :weeks | :months | :years) :: integer
+  #@spec diff(DateTime.t, DateTime.t, :timestamp) :: timestamp
+  #@spec diff(DateTime.t, DateTime.t, :secs | :days | :weeks | :months | :years) :: integer
 
   def diff(this, other, :timestamp) do
     diff(this, other, :secs) |> Time.from_sec
@@ -791,13 +824,13 @@ defmodule DateTime do
     diff(this, other, :days) |> div(7)
   end
   def diff(this, other, :months) do
-    DateTime[year: y1, month: m1] = universal(this)
-    DateTime[year: y2, month: m2] = universal(other)
+    %DateTime{:date => %Date{:year => y1, :month => m1}} = universal(this)
+    %DateTime{:date => %Date{:year => y2, :month => m2}} = universal(other)
     ((y2 - y1) * 12) + (m2 - m1)
   end
   def diff(this, other, :years) do
-    DateTime[year: y1] = universal(this)
-    DateTime[year: y2] = universal(other)
+    %DateTime{:date => %Date{:year => y1}} = universal(this)
+    %DateTime{:date => %Date{:year => y2}} = universal(other)
     y2 - y1
   end
 
@@ -805,7 +838,7 @@ defmodule DateTime do
   Add time to a date using a timestamp, i.e. {megasecs, secs, microsecs}
   Same as shift(date, Time.to_timestamp(5, :mins), :timestamp).
   """
-  @spec add(DateTime.t, timestamp) :: DateTime.t
+  #@spec add(DateTime.t, timestamp) :: DateTime.t
 
   def add(date, {mega, sec, _}) do
     shift(date, [secs: (mega * @million) + sec])
@@ -815,7 +848,7 @@ defmodule DateTime do
   Subtract time from a date using a timestamp, i.e. {megasecs, secs, microsecs}
   Same as shift(date, Time.to_timestamp(5, :mins) |> Time.invert, :timestamp).
   """
-  @spec subtract(DateTime.t, timestamp) :: DateTime.t
+  #@spec subtract(DateTime.t, timestamp) :: DateTime.t
 
   def subtract(date, {mega, sec, _}) do
     shift(date, [secs: (-mega * @million) - sec])
@@ -859,12 +892,12 @@ defmodule DateTime do
       #=> {{2013,3,18}, {23,23,36}}
 
   """
-  @spec shift(DateTime.t, list({atom(), term})) :: DateTime.t
+  #@spec shift(DateTime.t, list({atom(), term})) :: DateTime.t
 
   def shift(date, [{_, 0}]),               do: date
   def shift(date, [timestamp: {0,0,0}]),   do: date
   def shift(date, [timestamp: timestamp]), do: add(date, timestamp)
-  def shift(DateTime[timezone: tz] = date, [{type, value}]) when type in [:secs, :mins, :hours] do
+  def shift(%DateTime{:timezone => tz} = date, [{type, value}]) when type in [:secs, :mins, :hours] do
     secs = to_secs(date)
     secs = secs + case type do
       :secs   -> value
@@ -872,23 +905,23 @@ defmodule DateTime do
       :hours  -> value * 3600
     end
     shifted = from(secs, :secs)
-    shifted.update(timezone: tz)
+    %DateTime{shifted | :timezone => tz}
   end
-  def shift(DateTime[hour: h, minute: m, second: s, timezone: tz] = date, [days: value]) do
+  def shift(%DateTime{:time => %Time{:hours => h, :minutes => m, :seconds => s}, :timezone => tz} = date, [days: value]) do
     days = to_days(date)
     days = days + value
     shifted = from(days, :days) |> set([time: {h, m, s}])
-    shifted.update(timezone: tz)
+    %DateTime{shifted | :timezone => tz}
   end
   def shift(date, [weeks: value]) do
     date |> shift([days: value * 7])
   end
   def shift(date, [months: value]) do
-    DateTime[
-      year: year, month: month, day: day,
-      hour: h, minute: m, second: s,
-      timezone: tz
-    ] = date
+    %DateTime{
+      :date     => %Date{:year => year, :month => month, :day => day},
+      :time     => %Time{:hours => h, :minutes => m, :seconds => s},
+      :timezone => tz
+    } = date
 
     month = month + value
 
@@ -903,11 +936,11 @@ defmodule DateTime do
     validate({year, round_month(month), day}) |> construct({h, m, s}, tz)
   end
   def shift(date, [years: value]) do
-    DateTime[
-      year: year, month: month, day: day,
-      hour: h, minute: m, second: s,
-      timezone: tz
-    ] = date
+    %DateTime{
+      :date     => %Date{:year => year, :month => month, :day => day},
+      :time     => %Time{:hours => h, :minutes => m, :seconds => s},
+      :timezone => tz
+    } = date
     validate({year + value, month, day}) |> construct({h, m, s}, tz)
   end
 
@@ -949,19 +982,19 @@ defmodule DateTime do
 
   # Primary constructor for DateTime objects
   defp construct({_,_,_} = date, {_,_,_} = time, nil), do: construct(date, time, timezone(:utc))
-  defp construct({y, m, d}, {h, min, sec}, TimezoneInfo[] = tz) do
-    DateTime[
-      year: y, month: m, day: d,
-      hour: h, minute: min, second: sec,
+  defp construct({y, m, d}, {h, min, sec}, %Timezone{} = tz) do
+    %DateTime{
+      date:     %Date{year: y, month: m, day: d},
+      time:     %Time{hours: h, minutes: min, seconds: sec},
       timezone: tz
-    ]
+    }
   end
   defp construct({y, m, d}, {h, min, sec}, {_, name}) do
-    DateTime[
-      year: y, month: m, day: d,
-      hour: h, minute: min, second: sec,
-      timezone: Timezone.get(name),
-    ]
+    %DateTime{
+      date:     %Date{year: y, month: m, day: d},
+      time:     %Time{hours: h, minutes: min, seconds: sec},
+      timezone: Timezone.get(name)
+    }
   end
   def construct({date, time}, tz), do: construct(date, time, tz)
 
