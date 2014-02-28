@@ -11,10 +11,10 @@ Complete for 0.5.0:
 
 - Time struct/API
 - Time tests
+- Date struct
 
 In Progress:
 
-- Date struct
 - DateTime struct, and API update to use new structs
 
 Up Next:
