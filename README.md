@@ -19,11 +19,13 @@ Complete for 0.5.0:
 
 In Progress:
 
-Track down bug in Elixir's ParallelCompiler that is breaking builds on single-core machines.
+- Restructure the API, per the API.md document.
 
 Up Next:
 
-- Restructure the API, per the API.md document.
+- More tests
+- Better docs
+- Thorough code review
 
 ---
 
