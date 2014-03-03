@@ -12,16 +12,18 @@ Complete for 0.5.0:
 - Time struct/API
 - Time tests
 - Date struct
-
-In Progress:
-
 - DateTime struct, and API update to use new structs
-
-Up Next:
-
 - Timezone API
 - Update DateFormat to accomodate new APIs
 - Update tests
+
+In Progress:
+
+Track down bug in Elixir's ParallelCompiler that is breaking builds on single-core machines.
+
+Up Next:
+
+- Restructure the API, per the API.md document.
 
 ---
 
