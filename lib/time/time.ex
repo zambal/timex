@@ -4,7 +4,7 @@ defmodule Time do
   Time does not contain any date or timezone information.
   """
 
-  # Easier to read names for common values
+  ### Easier to read names for common values
   @microsecs_per_sec 1_000_000
   @millisecs_per_sec 1000
   @seconds_per_min   60
@@ -13,11 +13,17 @@ defmodule Time do
   @seconds_per_week  (3600 * 24 * 7)
   @epoch_timestamp   {{1970,1,1},{0,0,0}}
 
+
+  ### Time types
   @type unit_of_time :: :usecs | :msecs | :secs | :mins | :hours | :days | :weeks
+  @type time          :: { hour, minute, second }
+  @type hour          :: 0..23
+  @type minute        :: 0..59
+  @type second        :: 0..59
   @type megaseconds  :: integer
   @type seconds      :: integer
   @type microseconds :: integer
-  @type timestamp    :: {megaseconds, seconds, microseconds}
+  @type timestamp     :: {megaseconds, seconds, microseconds }
 
   ####
   # This structure is used to represent either a static point in time,

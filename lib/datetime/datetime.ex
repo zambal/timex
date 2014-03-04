@@ -16,42 +16,15 @@ defmodule DateTime do
     * compare dates
     * date arithmetic
   """
-  @dtstruct %{__struct__: DateTime, date: %Date{}, time: %Time{}, timezone: %Timezone{}}
-  defstruct Map.to_list(@dtstruct)
+  defstruct date: %Date{}, time: %Time{}, timezone: %Timezone{}
 
   # Date types
   @type dtz :: { datetime, term } # term should be Timezone.t, but no struct types yet
   @type datetime :: { date, time }
   @type date :: { year, month, day }
-  @type year :: non_neg_integer
-  @type month :: 1..12
-  @type day :: 1..31
-  @type daynum :: 1..366
-  @type weekday :: 1..7
-  @type weeknum :: 1..53
-  @type num_of_days :: 28..31
-  # Time types
-  @type time :: { hour, minute, second }
-  @type hour :: 0..23
-  @type minute :: 0..59
-  @type second :: 0..59
-  @type timestamp :: {megaseconds, seconds, microseconds }
-  @type megaseconds :: non_neg_integer
-  @type seconds :: non_neg_integer
-  @type microseconds :: non_neg_integer
 
   # Constants
   @million 1_000_000
-  @weekdays [ 
-    {"Monday", 1}, {"Tuesday", 2}, {"Wednesday", 3}, {"Thursday", 4},
-    {"Friday", 5}, {"Saturday", 6}, {"Sunday", 7}
-  ]
-  @months [ 
-    {"January", 1},  {"February", 2},  {"March", 3},
-    {"April", 4},    {"May", 5},       {"June", 6},
-    {"July", 7},     {"August", 8},    {"September", 9},
-    {"October", 10}, {"November", 11}, {"December", 12}
-  ]
 
   @doc """
   Get a TimezoneInfo object for the specified offset or name.
@@ -73,7 +46,7 @@ defmodule DateTime do
   defdelegate timezone(:local, name), to: Timezone, as: :local
 
   @doc """
-  Get current date.
+  Get current date and time.
 
   ## Examples
 
@@ -82,7 +55,7 @@ defmodule DateTime do
   """
   #@spec now() :: DateTime.t
   def now do
-    construct(:calendar.universal_time(), timezone(:utc))
+    :calendar.universal_time |> construct(timezone(:utc))
   end
 
   @doc """
@@ -360,143 +333,17 @@ defmodule DateTime do
     :calendar.date_to_gregorian_days({y, m, d})
   end
 
-  @doc """
-  Return weekday number (as defined by ISO 8601) of the specified date.
 
-  ## Examples
+  def day(%DateTime{:date => date}),  do: Date.day(date)
+  def week(%DateTime{:date => date}), do: Date.week(date)
 
-      Date.epoch |> Date.weekday  #=> 4 (i.e. Thursday)
+  defdelegate weekday(num),         to: Date
+  defdelegate weekday(num, :short), to: Date
+  defdelegate iso_weekday(name),    to: Date
+  defdelegate month(num),         to: Date
+  defdelegate month(num, :short), to: Date
+  defdelegate iso_month(name),    to: Date
 
-  """
-  #@spec weekday(DateTime.t) :: weekday
-
-  def weekday(%DateTime{:date => %Date{:year => y, :month => m, :day => d}}), do: :calendar.day_of_the_week({y, m, d})
-
-  @doc """
-  Returns the ordinal day number of the date.
-  """
-  #@spec day(DateTime.t) :: daynum
-
-  def day(date) do
-    start_of_year = date |> set([month: 1, day: 1])
-    1 + diff(start_of_year, date, :days)
-  end
-
-  @doc """
-  Return a pair {year, week number} (as defined by ISO 8601) that date falls
-  on.
-
-  ## Examples
-
-      Date.epoch |> Date.iso_week  #=> {1970,1}
-
-  """
-  #@spec iso_week(DateTime.t) :: {year, weeknum}
-
-  def iso_week(%DateTime{:date => %Date{:year => y, :month => m, :day => d}}) do
-    :calendar.iso_week_number({y, m, d})
-  end
-  def iso_week(date), do: iso_week(from(date, :utc))
-
-  @doc """
-  Get the day of the week corresponding to the given name.
-
-  ## Examples
-
-    day_to_num("Monday")  => 1
-    day_to_num("Mon")     => 1
-    day_to_num("monday")  => 1
-    day_to_num("mon")     => 1
-    day_to_num(:mon)   => 1
-
-  """
-  @spec day_to_num(binary | atom()) :: integer
-  @weekdays |> Enum.each fn {day_name, day_num} ->
-    lower      = day_name |> String.downcase
-    abbr_cased = day_name |> String.slice(0..2)
-    abbr_lower = lower |> String.slice(0..2)
-    symbol     = abbr_lower |> binary_to_atom
-
-    day_quoted = quote do
-      def day_to_num(unquote(day_name)),   do: unquote(day_num)
-      def day_to_num(unquote(lower)),      do: unquote(day_num)
-      def day_to_num(unquote(abbr_cased)), do: unquote(day_num)
-      def day_to_num(unquote(abbr_lower)), do: unquote(day_num)
-      def day_to_num(unquote(symbol)),     do: unquote(day_num)
-    end
-    Module.eval_quoted __MODULE__, day_quoted, [], __ENV__
-  end
-  def day_to_num(x), do: raise(:badday, x)
-
-  @doc """
-  Get the name of the day corresponding to the provided number
-  """
-  @spec day_name(weekday) :: binary
-  @weekdays |> Enum.each fn {name, day_num} ->
-    def day_name(unquote(day_num)), do: unquote(name)
-  end
-  def day_name(x), do: raise(:badday, x)
-
-  @doc """
-  Get the short name of the day corresponding to the provided number
-  """
-  @spec day_shortname(month) :: binary
-  @weekdays |> Enum.each fn {name, day_num} ->
-    def day_shortname(unquote(day_num)), do: String.slice(unquote(name), 0..2)
-  end
-  def day_shortname(x), do: raise(:badday, x)
-
-  @doc """
-  Get the number of the month corresponding to the given name.
-
-  ## Examples
-
-    month_to_num("January") => 1
-    month_to_num("Jan")     => 1
-    month_to_num("january") => 1
-    month_to_num("jan")     => 1
-    month_to_num(:january)  => 1
-
-  """
-  @spec month_to_num(binary) :: integer
-  @months |> Enum.each fn {month_name, month_num} ->
-    lower      = month_name |> String.downcase
-    abbr_cased = month_name |> String.slice(0..2)
-    abbr_lower = lower |> String.slice(0..2)
-    symbol     = abbr_lower |> binary_to_atom
-    full_chars = month_name |> String.to_char_list!
-    abbr_chars = abbr_cased |> String.to_char_list!
-
-    month_quoted = quote do
-      def month_to_num(unquote(month_name)), do: unquote(month_num)
-      def month_to_num(unquote(lower)),      do: unquote(month_num)
-      def month_to_num(unquote(abbr_cased)), do: unquote(month_num)
-      def month_to_num(unquote(abbr_lower)), do: unquote(month_num)
-      def month_to_num(unquote(symbol)),     do: unquote(month_num)
-      def month_to_num(unquote(full_chars)), do: unquote(month_num)
-      def month_to_num(unquote(abbr_chars)), do: unquote(month_num)
-    end
-    Module.eval_quoted __MODULE__, month_quoted, [], __ENV__
-  end
-  def month_to_num(x), do: raise(:badmonth, x)
-
-  @doc """
-  Get the name of the month corresponding to the provided number
-  """
-  @spec month_name(month) :: binary
-  @months |> Enum.each fn {name, month_num} ->
-    def month_name(unquote(month_num)), do: unquote(name)
-  end
-  def month_name(x), do: raise(:badmonth, x)
-
-  @doc """
-  Get the short name of the month corresponding to the provided number
-  """
-  @spec month_shortname(month) :: binary
-  @months |> Enum.each fn {name, month_num} ->
-    def month_shortname(unquote(month_num)), do: String.slice(unquote(name), 0..2)
-  end
-  def month_shortname(x), do: raise(:badmonth, x)
 
   @doc """
   Return a 3-tuple {year, week number, weekday} for the given date.
@@ -980,7 +827,6 @@ defmodule DateTime do
     date |> shift([secs: sec]) |> shift([days: day]) |> shift([years: year])
   end
 
-  # Primary constructor for DateTime objects
   defp construct({_,_,_} = date, {_,_,_} = time, nil), do: construct(date, time, timezone(:utc))
   defp construct({y, m, d}, {h, min, sec}, %Timezone{} = tz) do
     %DateTime{
