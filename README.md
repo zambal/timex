@@ -5,7 +5,7 @@ A draft implementation of date and time functionality based on **Idea #6** from 
 
 ## Status ##
 
-[![wercker status](https://app.wercker.com/status/a77f83a04ae1006c9ee44f61a1a147a0/m/ "wercker status")](https://app.wercker.com/project/bykey/a77f83a04ae1006c9ee44f61a1a147a0)
+[![wercker status](https://app.wercker.com/status/07ebafab94a2004564366a6734d1b8bf/m/ "wercker status")](https://app.wercker.com/project/bykey/07ebafab94a2004564366a6734d1b8bf)
 
 Complete for 0.5.0:
 
